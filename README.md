@@ -12,6 +12,13 @@
   <strong>Windows 11 · Synthetic Precision Touchpad · Mouse Wheel Pinch Zoom</strong>
 </p>
 
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white" alt="Windows 11">
+  <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B&logoColor=white" alt="C++17">
+  <img src="https://img.shields.io/badge/version-v1.0.0-brightgreen" alt="v1.0.0">
+</p>
+
 ---
 
 一个面向 Windows 11 的鼠标滚轮捏合缩放工具。
@@ -44,22 +51,27 @@ Continuous Pinch 将鼠标滚轮输入转换为 **Windows 11 Synthetic Precision
 
 ---
 
+## 动图演示
+### 1. 缩放功能演示
+
+按住 `Alt` 后滚动鼠标滚轮，触发 Synthetic Precision Touchpad 的 pinch 缩放。
+
+<p align="center">
+  <img src="assets/gifs/zoom-demo.gif" alt="Zoom Demo" width="900">
+</p>
+
+### 2. 中键复位功能演示
+
+按下设定的中键复位操作后，平滑回到工具记录的 100% 基准。
+
+<p align="center">
+  <img src="assets/gifs/reset-demo.gif" alt="Reset Demo" width="900">
+</p>
+
+
+---
+
 ## 软件截图
-
-建议将截图放在：
-
-```text
-assets/screenshots/
-```
-
-推荐文件名：
-
-```text
-settings-cn.png
-settings-en.png
-tray-menu.png
-```
-
 ### 中文界面
 
 ![中文设置界面](assets/screenshots/settings-cn.png)
