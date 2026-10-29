@@ -1,4 +1,18 @@
-# Continuous Pinch
+<p align="center">
+  <img src="assets/app-logo.png" alt="Continuous Pinch Logo" width="160">
+</p>
+
+<h1 align="center">Continuous Pinch</h1>
+
+<p align="center">
+  Windows 11 鼠标滚轮模拟 Precision Touchpad 捏合缩放
+</p>
+
+<p align="center">
+  <strong>Windows 11 · Synthetic Precision Touchpad · Mouse Wheel Pinch Zoom</strong>
+</p>
+
+---
 
 一个面向 Windows 11 的鼠标滚轮捏合缩放工具。
 
@@ -27,6 +41,37 @@ Continuous Pinch 将鼠标滚轮输入转换为 **Windows 11 Synthetic Precision
 - 实时灵敏度调节
 - 开机启动
 - Chrome / Edge 默认支持
+
+---
+
+## 软件截图
+
+建议将截图放在：
+
+```text
+assets/screenshots/
+```
+
+推荐文件名：
+
+```text
+settings-cn.png
+settings-en.png
+tray-menu.png
+```
+
+### 中文界面
+
+![中文设置界面](assets/screenshots/settings-cn.png)
+
+### English UI
+
+![English settings](assets/screenshots/settings-en.png)
+
+### 系统托盘
+
+![系统托盘菜单](assets/screenshots/tray-menu.png)
+
 
 ---
 
@@ -369,7 +414,3 @@ Ctrl + Alt + Shift + F12
 ## License
 
 暂未选择开源许可证。
-
-如果你准备允许其他人自由修改和再分发代码，可以考虑添加 MIT License。
-
-在没有 LICENSE 文件的情况下，默认并不代表其他人拥有自由复制、修改和再分发代码的权利。
