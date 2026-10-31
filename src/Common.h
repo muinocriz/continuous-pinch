@@ -73,6 +73,14 @@ constexpr double ResetFingerSpeed = 26000.0;
 // Windows build, set this to false to restore the v1.0.x behavior.
 constexpr bool UsePointerTransitionFlags = true;
 
+// "Menu mask" key. A lone Alt press+release activates the menu / toolbar of
+// the focused window (in Chrome / Edge: the app menu). When we swallow
+// Alt+Wheel or Alt+Middle, the app only sees Alt down/up, so we inject this
+// key while Alt is held. 0xE8 is unassigned and has no side effects; it is
+// the same default AutoHotkey uses (A_MenuMaskKey).
+constexpr WORD MenuMaskVk = 0xE8;
+constexpr double MenuMaskRepeatSec = 0.25;
+
 constexpr int ExitHotkeyId = 3001;
 
 // Tray

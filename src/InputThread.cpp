@@ -27,6 +27,8 @@ static HANDLE g_frameTimer = nullptr;
 static bool g_frameTimerHighRes = false;
 static bool g_frameTimerRunning = false;
 
+static double g_lastMenuMaskTime = -1.0e9;
+
 
 // ============================================================================
 // Configuration snapshot
@@ -82,6 +84,37 @@ UINT CurrentModifierMask()
         mask |= MM_SHIFT;
 
     return mask;
+}
+
+
+// A lone Alt press+release activates the focused window's menu (in Chrome /
+// Edge it focuses the app menu, so the next keystrokes go there). When the
+// hook swallows Alt+Wheel or Alt+Middle, that is exactly what the app sees.
+// Injecting an unassigned key while Alt is still held makes the Alt release
+// a normal key-combination release. Rate-limited: one mask per Alt hold is
+// enough, a few per second while scrolling is harmless.
+static void SendMenuMaskIfAltHeld(LPARAM altHeld)
+{
+    if (!altHeld)
+        return;
+
+    const double now = NowSeconds();
+
+    if (now - g_lastMenuMaskTime < Const::MenuMaskRepeatSec)
+        return;
+
+    g_lastMenuMaskTime = now;
+
+    INPUT inputs[2]{};
+
+    inputs[0].type = INPUT_KEYBOARD;
+    inputs[0].ki.wVk = Const::MenuMaskVk;
+
+    inputs[1].type = INPUT_KEYBOARD;
+    inputs[1].ki.wVk = Const::MenuMaskVk;
+    inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
+
+    SendInput(2, inputs, sizeof(INPUT));
 }
 
 
@@ -178,6 +211,8 @@ static void HandleInputMessage(const MSG& msg)
     switch (msg.message)
     {
         case Const::WM_INPUT_WHEEL:
+            SendMenuMaskIfAltHeld(msg.lParam);
+
             if (g_inputCfg.enabled)
             {
                 ApplyWheelDelta(static_cast<short>(LOWORD(msg.wParam)), g_inputCfg.sensitivityLog);
@@ -185,10 +220,13 @@ static void HandleInputMessage(const MSG& msg)
             break;
 
         case Const::WM_INPUT_SOFT_RESET:
+            SendMenuMaskIfAltHeld(msg.lParam);
             RequestSoftReset();
             break;
 
         case Const::WM_INPUT_HARD_RESET:
+            SendMenuMaskIfAltHeld(msg.lParam);
+
             if (!HardResetDevice())
                 PostMessageW(g_mainWindow, Const::WM_APP_HARD_RESET_FAILED, 0, 0);
             break;
