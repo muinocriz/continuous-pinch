@@ -1,12 +1,13 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #define _WIN32_WINNT 0x0A00
-#define IDI_APP_ICON 101
 
 #include <windows.h>
 #include <commctrl.h>
 #include <mmsystem.h>
 #include <shellapi.h>
+
+#include "../resource.h"
 
 #include <algorithm>
 #include <atomic>
@@ -121,6 +122,7 @@ constexpr int IDC_APPLY         = 5011;
 constexpr int IDC_CLOSE         = 5012;
 constexpr int IDC_DEFAULTS      = 5013;
 constexpr int IDC_LANGUAGE      = 5014;
+constexpr int IDC_TARGET_MODE     = 5015;
 
 } // namespace Const
 
@@ -143,6 +145,12 @@ enum class UiLanguage : int
     English = 1
 };
 
+enum class TargetMode : int
+{
+    Hover = 0,
+    Foreground = 1
+};
+
 enum ModifierMask : UINT
 {
     MM_NONE  = 0,
@@ -156,6 +164,7 @@ struct AppConfig
     bool enabled = true;
     bool startWithWindows = false;
     UiLanguage language = UiLanguage::Chinese;
+    TargetMode targetMode = TargetMode::Hover;
 
     // Natural logarithmic zoom increment per standard wheel notch.
     double sensitivityLog = 0.070;
@@ -233,9 +242,12 @@ static HWND g_mainWindow = nullptr;
 static HWND g_settingsWindow = nullptr;
 
 static HHOOK g_mouseHook = nullptr;
-static HWINEVENTHOOK g_foregroundHook = nullptr;
 
-static std::atomic<bool> g_foregroundAllowed{ false };
+// Target-application cache. The main message thread updates it; WH_MOUSE_LL
+// only reads the atomic flag so the low-level hook remains lightweight.
+static std::atomic<bool> g_targetAllowed{ false };
+static HWND g_lastTargetRoot = nullptr;
+
 static std::atomic<bool> g_swallowMiddleUp{ false };
 static std::atomic<bool> g_enabled{ true };
 
@@ -663,6 +675,17 @@ static void LoadConfig()
             L"Whitelist",
             L"chrome.exe;msedge.exe");
 
+    cfg.targetMode =
+        static_cast<TargetMode>(
+            std::clamp(
+                ReadIniInt(
+                    L"Applications",
+                    L"TargetMode",
+                    static_cast<int>(
+                        TargetMode::Hover)),
+                0,
+                1));
+
     cfg.startWithWindows =
         IsRunAtStartup();
 
@@ -758,13 +781,19 @@ static void SaveConfig()
         cfg.whitelist.c_str(),
         g_configPath.c_str());
 
+    WriteIniInt(
+        L"Applications",
+        L"TargetMode",
+        static_cast<int>(
+            cfg.targetMode));
+
     SetRunAtStartup(
         cfg.startWithWindows);
 }
 
 
 // ============================================================================
-// Foreground application whitelist
+// Target application whitelist
 // ============================================================================
 
 static bool IsAllowedProcess(DWORD pid)
@@ -825,11 +854,75 @@ static bool IsAllowedProcess(DWORD pid)
 }
 
 
-static void UpdateForegroundAllowed(HWND hwnd)
+static HWND RootWindowUnderPoint(POINT pt)
 {
+    HWND hwnd =
+        WindowFromPoint(pt);
+
     if (!hwnd)
+        return nullptr;
+
+    HWND root =
+        GetAncestor(
+            hwnd,
+            GA_ROOT);
+
+    return root ? root : hwnd;
+}
+
+
+// Refresh the whitelist result for the selected target mode.
+// Hover mode uses WindowFromPoint(); foreground mode uses GetForegroundWindow().
+// Process lookup runs only when the selected root HWND changes, or when
+// force=true after config changes.
+static void RefreshTargetAllowed(bool force = false)
+{
+    TargetMode mode = TargetMode::Hover;
+
     {
-        g_foregroundAllowed.store(
+        std::lock_guard<std::mutex> lock(
+            g_cfgMutex);
+
+        mode = g_cfg.targetMode;
+    }
+
+    HWND root = nullptr;
+
+    if (mode == TargetMode::Hover)
+    {
+        POINT pt{};
+
+        if (GetCursorPos(&pt))
+            root = RootWindowUnderPoint(pt);
+    }
+    else
+    {
+        HWND hwnd =
+            GetForegroundWindow();
+
+        if (hwnd)
+        {
+            HWND top =
+                GetAncestor(
+                    hwnd,
+                    GA_ROOT);
+
+            root = top ? top : hwnd;
+        }
+    }
+
+    if (!force &&
+        root == g_lastTargetRoot)
+    {
+        return;
+    }
+
+    g_lastTargetRoot =
+        root;
+
+    if (!root)
+    {
+        g_targetAllowed.store(
             false,
             std::memory_order_relaxed);
 
@@ -839,25 +932,12 @@ static void UpdateForegroundAllowed(HWND hwnd)
     DWORD pid = 0;
 
     GetWindowThreadProcessId(
-        hwnd,
+        root,
         &pid);
 
-    g_foregroundAllowed.store(
+    g_targetAllowed.store(
         IsAllowedProcess(pid),
         std::memory_order_relaxed);
-}
-
-
-static void CALLBACK ForegroundWinEventProc(
-    HWINEVENTHOOK,
-    DWORD,
-    HWND hwnd,
-    LONG,
-    LONG,
-    DWORD,
-    DWORD)
-{
-    UpdateForegroundAllowed(hwnd);
 }
 
 
@@ -1414,6 +1494,10 @@ static void RecoverAfterInjectionFailure()
 
 static void TickPinch()
 {
+    // Refresh the selected target mode (hover by default, or foreground).
+    // Root HWND caching prevents repeated process-name lookups at 125 Hz.
+    RefreshTargetAllowed();
+
     const double now =
         NowSeconds();
 
@@ -1583,8 +1667,8 @@ static void TickPinch()
         const bool zoomModifierHeld =
             ZoomModifierStillHeld();
 
-        const bool foregroundStillAllowed =
-            g_foregroundAllowed.load(
+        const bool targetStillAllowed =
+            g_targetAllowed.load(
                 std::memory_order_relaxed);
 
         // V3.1 slow-wheel behavior:
@@ -1603,10 +1687,10 @@ static void TickPinch()
         // We release when:
         //   - soft reset has completed, or
         //   - the zoom modifier is released/changed, or
-        //   - focus leaves the whitelist.
+        //   - the selected target is no longer a whitelisted application.
         if (g_pinch.softResetting ||
             !zoomModifierHeld ||
-            !foregroundStillAllowed)
+            !targetStillAllowed)
         {
             EndActiveSegment();
 
@@ -1682,7 +1766,7 @@ static LRESULT CALLBACK LowLevelMouseProc(
          LLMHF_INJECTED) == 0 &&
         g_enabled.load(
             std::memory_order_relaxed) &&
-        g_foregroundAllowed.load(
+        g_targetAllowed.load(
             std::memory_order_relaxed))
     {
         AppConfig cfg;
@@ -1895,11 +1979,11 @@ static bool AddTrayIcon()
     g_nid.uCallbackMessage =
         Const::WM_TRAY;
 
-	g_nid.hIcon =
-		LoadIconW(
-			GetModuleHandleW(nullptr),
-			MAKEINTRESOURCEW(
-				IDI_APP_ICON));
+    g_nid.hIcon =
+        LoadIconW(
+            GetModuleHandleW(nullptr),
+            MAKEINTRESOURCEW(
+                IDI_APP_ICON));
 
     wcscpy_s(
         g_nid.szTip,
@@ -2354,6 +2438,28 @@ static void ApplySettingsLanguage(HWND settings)
         SendMessageW(language, CB_SETCURSEL,
             CurrentLanguage() == UiLanguage::Chinese ? 0 : 1, 0);
     }
+
+    HWND targetMode = GetDlgItem(settings, Const::IDC_TARGET_MODE);
+    if (targetMode)
+    {
+        const LRESULT currentMode =
+            SendMessageW(targetMode, CB_GETCURSEL, 0, 0);
+
+        SendMessageW(targetMode, CB_RESETCONTENT, 0, 0);
+        SendMessageW(targetMode, CB_ADDSTRING, 0,
+            reinterpret_cast<LPARAM>(
+                zh
+                    ? L"鼠标悬停窗口（推荐）"
+                    : L"Window under mouse (recommended)"));
+        SendMessageW(targetMode, CB_ADDSTRING, 0,
+            reinterpret_cast<LPARAM>(
+                zh
+                    ? L"当前前台窗口"
+                    : L"Foreground window"));
+
+        if (currentMode >= 0 && currentMode <= 1)
+            SendMessageW(targetMode, CB_SETCURSEL, currentMode, 0);
+    }
 }
 
 static void PopulateSettingsFromConfig(
@@ -2516,6 +2622,15 @@ static void PopulateSettingsFromConfig(
         cfg.language == UiLanguage::Chinese ? 0 : 1,
         0);
 
+    SendMessageW(
+        GetDlgItem(
+            settings,
+            Const::IDC_TARGET_MODE),
+        CB_SETCURSEL,
+        static_cast<WPARAM>(
+            cfg.targetMode),
+        0);
+
     ApplySettingsLanguage(settings);
 }
 
@@ -2640,6 +2755,20 @@ static bool ApplySettingsFromWindow(
             ? UiLanguage::English
             : UiLanguage::Chinese;
 
+    const LRESULT targetModeIndex =
+        SendMessageW(
+            GetDlgItem(
+                settings,
+                Const::IDC_TARGET_MODE),
+            CB_GETCURSEL,
+            0,
+            0);
+
+    newCfg.targetMode =
+        targetModeIndex == 1
+            ? TargetMode::Foreground
+            : TargetMode::Hover;
+
     HWND whitelistEdit =
         GetDlgItem(
             settings,
@@ -2704,8 +2833,8 @@ static bool ApplySettingsFromWindow(
 
     SaveConfig();
 
-    UpdateForegroundAllowed(
-        GetForegroundWindow());
+    // Whitelist or target mode may have changed, so force a fresh check.
+    RefreshTargetAllowed(true);
 
     const bool hotkeyOk =
         RegisterExitHotkey();
@@ -2921,8 +3050,21 @@ static LRESULT CALLBACK SettingsWndProc(
 
             AddStatic(
                 hwnd,
+                L"目标判定 / Target",
+                20, 326, 100, 22);
+
+            HWND targetMode =
+                AddCombo(
+                    hwnd,
+                    Const::IDC_TARGET_MODE,
+                    120, 320, 300, 120);
+
+            SetControlFont(targetMode);
+
+            AddStatic(
+                hwnd,
                 L"应用白名单（每行一个 exe）",
-                20, 326, 420, 22);
+                20, 366, 420, 22);
 
             HWND whitelist =
                 CreateWindowExW(
@@ -2936,7 +3078,7 @@ static LRESULT CALLBACK SettingsWndProc(
                     ES_MULTILINE |
                     ES_AUTOVSCROLL |
                     ES_WANTRETURN,
-                    20, 350, 555, 120,
+                    20, 390, 555, 120,
                     hwnd,
                     reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_WHITELIST)),
                     GetModuleHandleW(
@@ -2954,7 +3096,7 @@ static LRESULT CALLBACK SettingsWndProc(
                     WS_VISIBLE |
                     WS_TABSTOP |
                     BS_AUTOCHECKBOX,
-                    20, 485, 200, 24,
+                    20, 525, 200, 24,
                     hwnd,
                     reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_STARTUP)),
                     GetModuleHandleW(
@@ -2972,7 +3114,7 @@ static LRESULT CALLBACK SettingsWndProc(
                     WS_VISIBLE |
                     WS_TABSTOP |
                     BS_PUSHBUTTON,
-                    250, 520, 95, 30,
+                    250, 560, 95, 30,
                     hwnd,
                     reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_DEFAULTS)),
                     GetModuleHandleW(
@@ -2990,7 +3132,7 @@ static LRESULT CALLBACK SettingsWndProc(
                     WS_VISIBLE |
                     WS_TABSTOP |
                     BS_DEFPUSHBUTTON,
-                    355, 520, 95, 30,
+                    355, 560, 95, 30,
                     hwnd,
                     reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_APPLY)),
                     GetModuleHandleW(
@@ -3008,7 +3150,7 @@ static LRESULT CALLBACK SettingsWndProc(
                     WS_VISIBLE |
                     WS_TABSTOP |
                     BS_PUSHBUTTON,
-                    460, 520, 95, 30,
+                    460, 560, 95, 30,
                     hwnd,
                     reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_CLOSE)),
                     GetModuleHandleW(
@@ -3161,17 +3303,21 @@ static bool CreateSettingsWindow(
         SettingsWndProc;
     wc.hInstance =
         hInstance;
-	wc.hIcon = LoadIconW(
-		hInstance,
-		MAKEINTRESOURCEW(IDI_APP_ICON));
-	wc.hIconSm = LoadIconW(
-		hInstance,
-		MAKEINTRESOURCEW(IDI_APP_ICON));
     wc.hCursor =
         LoadCursorW(
             nullptr,
             MAKEINTRESOURCEW(
                 IDC_ARROW));
+    wc.hIcon =
+        LoadIconW(
+            hInstance,
+            MAKEINTRESOURCEW(
+                IDI_APP_ICON));
+    wc.hIconSm =
+        LoadIconW(
+            hInstance,
+            MAKEINTRESOURCEW(
+                IDI_APP_ICON));
     wc.hbrBackground =
         reinterpret_cast<HBRUSH>(
             COLOR_WINDOW + 1);
@@ -3193,7 +3339,7 @@ static bool CreateSettingsWindow(
             CW_USEDEFAULT,
             CW_USEDEFAULT,
             620,
-            610,
+            650,
             nullptr,
             nullptr,
             hInstance,
@@ -3511,6 +3657,16 @@ int WINAPI wWinMain(
         MainWndProc;
     wc.hInstance =
         hInstance;
+    wc.hIcon =
+        LoadIconW(
+            hInstance,
+            MAKEINTRESOURCEW(
+                IDI_APP_ICON));
+    wc.hIconSm =
+        LoadIconW(
+            hInstance,
+            MAKEINTRESOURCEW(
+                IDI_APP_ICON));
     wc.lpszClassName =
         mainClass;
 
@@ -3566,19 +3722,9 @@ int WINAPI wWinMain(
 
     RegisterExitHotkey();
 
-    UpdateForegroundAllowed(
-        GetForegroundWindow());
-
-    g_foregroundHook =
-        SetWinEventHook(
-            EVENT_SYSTEM_FOREGROUND,
-            EVENT_SYSTEM_FOREGROUND,
-            nullptr,
-            ForegroundWinEventProc,
-            0,
-            0,
-            WINEVENT_OUTOFCONTEXT |
-            WINEVENT_SKIPOWNPROCESS);
+    // Default target mode is Hover, so the browser does not need focus.
+    // Existing users can switch to Foreground mode in Settings.
+    RefreshTargetAllowed(true);
 
     g_mouseHook =
         SetWindowsHookExW(
@@ -3629,14 +3775,6 @@ int WINAPI wWinMain(
             g_mouseHook);
 
         g_mouseHook = nullptr;
-    }
-
-    if (g_foregroundHook)
-    {
-        UnhookWinEvent(
-            g_foregroundHook);
-
-        g_foregroundHook = nullptr;
     }
 
     if (g_settingsWindow)
