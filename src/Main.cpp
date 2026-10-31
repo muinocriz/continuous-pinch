@@ -1,25 +1,20 @@
 // ============================================================================
-// Continuous Pinch V3
-// Windows 11 Synthetic Precision Touchpad
-//
-// Features:
-//   - System tray
-//   - INI configuration beside the EXE
-//   - Configurable mouse modifiers + exit hotkey
-//   - Multiple smoothing curves
-//   - Application whitelist UI
-//   - Real-time sensitivity slider
-//   - Start with Windows
+// Continuous Pinch
+// Mouse-wheel pinch zoom through a Windows 11 synthetic precision touchpad.
 //
 // Defaults:
-//   Alt + Wheel            : zoom, never below logical 100% baseline
-//   Alt + Middle Click     : smoothly return to baseline
-//   Ctrl + Alt + Middle    : hard reset synthetic touchpad
+//   Alt + Wheel            : zoom, never below the window's logical 100%
+//   Alt + Middle Click     : smoothly return the clicked window to 100%
+//   Ctrl + Alt + Middle    : hard reset the synthetic touchpad
 //   Ctrl + Alt + Shift+F12 : exit
 //
+// Threads:
+//   UI thread    : this file -- tray, Settings dialog, configuration
+//   input thread : InputThread.cpp -- mouse hook, pinch engine, touchpad
+//
 // IMPORTANT:
-// "100%" is the baseline maintained by this tool. If a page is pinch-zoomed
-// through some other device while V3 is running, V3 cannot read that external
+// "100%" is the baseline maintained by this tool, per top-level window. If a
+// page is pinch-zoomed through some other device, the tool cannot read that
 // visual-viewport scale back from Chromium.
 // ============================================================================
 

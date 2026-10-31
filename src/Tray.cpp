@@ -24,7 +24,7 @@ void UpdateTrayTooltip()
     const wchar_t* state =
         cfg.enabled ? (zh ? L"已启用" : L"Enabled") : (zh ? L"已禁用" : L"Disabled");
 
-    swprintf_s(g_nid.szTip, L"Continuous Pinch V3 - %s", state);
+    swprintf_s(g_nid.szTip, L"%s v%s - %s", Const::AppName, Const::AppVersion, state);
 
     if (g_nid.hWnd)
     {
@@ -49,7 +49,7 @@ bool AddTrayIcon()
 
     g_nid.hIcon = LoadIconW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_APP_ICON));
 
-    wcscpy_s(g_nid.szTip, L"Continuous Pinch V3");
+    wcscpy_s(g_nid.szTip, Const::AppName);
 
     return Shell_NotifyIconW(NIM_ADD, &g_nid) != FALSE;
 }

@@ -193,7 +193,7 @@ static void ApplySettingsLanguage(HWND settings)
 {
     const bool zh = CurrentLanguage() == UiLanguage::Chinese;
 
-    SetWindowTextW(settings, zh ? L"Continuous Pinch V3 设置" : L"Continuous Pinch V3 Settings");
+    SetWindowTextW(settings, zh ? L"Continuous Pinch 设置" : L"Continuous Pinch Settings");
 
     SetItemText(settings, IDC_GRP_GENERAL, zh ? L"常规" : L"General");
     SetItemText(settings, IDC_ENABLED, zh ? L"启用捏合缩放" : L"Enable pinch zoom");
