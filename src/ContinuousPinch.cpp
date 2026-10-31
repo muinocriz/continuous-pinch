@@ -56,6 +56,12 @@ namespace Const {
 constexpr wchar_t AppName[] = L"Continuous Pinch V3";
 constexpr wchar_t ConfigFileName[] = L"continuous_pinch_v3.ini";
 constexpr wchar_t RunRegistryValue[] = L"ContinuousPinchV3";
+constexpr wchar_t MainWindowClass[] = L"ContinuousPinchV3MainWindow";
+constexpr wchar_t SingleInstanceMutex[] = L"Local\\ContinuousPinchV3.SingleInstance";
+
+// INI keys. Keys must never be localized.
+constexpr wchar_t IniKeyEnabled[] = L"Enabled";
+constexpr wchar_t IniKeyEnabledLegacy[] = L"启用";   // v1.0.0 / v1.0.1 bug
 
 // Synthetic precision touchpad size: 100 mm x 60 mm in HIMETRIC.
 constexpr LONG TouchpadWidth  = 10000;
@@ -181,7 +187,14 @@ struct AppConfig
     std::wstring whitelist = L"chrome.exe;msedge.exe";
 };
 
+// g_cfg is the live configuration used at runtime. While the Settings window
+// is open it may contain preview values (sensitivity / curve / language)
+// that the user has not applied yet.
+//
+// g_committedCfg is what has been applied and is what SaveConfig() persists.
+// Closing Settings without applying restores g_cfg from g_committedCfg.
 static AppConfig g_cfg;
+static AppConfig g_committedCfg;
 static std::mutex g_cfgMutex;
 
 // ============================================================================
@@ -252,6 +265,10 @@ static std::atomic<bool> g_swallowMiddleUp{ false };
 static std::atomic<bool> g_enabled{ true };
 
 static NOTIFYICONDATAW g_nid{};
+
+// Broadcast by Explorer when the taskbar is (re)created, e.g. after
+// explorer.exe restarts. Tray icons must be re-added in response.
+static UINT g_taskbarCreatedMsg = 0;
 
 static std::wstring g_configPath;
 
@@ -347,14 +364,20 @@ static std::vector<std::wstring> ParseWhitelist(const std::wstring& text)
 }
 
 
+// A multi-line EDIT control only treats CRLF as a line break; a bare LF is
+// rendered inline (e.g. "chrome.exemsedge.exe").
 static std::wstring WhitelistForUi(const std::wstring& whitelist)
 {
-    std::wstring s = whitelist;
+    const auto items = ParseWhitelist(whitelist);
 
-    for (auto& ch : s)
+    std::wstring s;
+
+    for (size_t i = 0; i < items.size(); ++i)
     {
-        if (ch == L';')
-            ch = L'\n';
+        if (i != 0)
+            s += L"\r\n";
+
+        s += items[i];
     }
 
     return s;
@@ -606,11 +629,46 @@ static void LoadConfig()
 {
     AppConfig cfg{};
 
-    cfg.enabled =
+    cfg.language =
+        static_cast<UiLanguage>(
+            std::clamp(
+                ReadIniInt(
+                    L"General",
+                    L"Language",
+                    static_cast<int>(
+                        UiLanguage::Chinese)),
+                0,
+                1));
+
+    // The INI key is always "Enabled".
+    //
+    // v1.0.0 / v1.0.1 accidentally localized this key: they wrote "启用"
+    // while the UI was Chinese and "Enabled" while it was English. The key
+    // matching the saved language is the one the old version wrote last.
+    // SaveConfig() removes the legacy key, so after the first save only
+    // "Enabled" remains.
+    const int enabledValue =
         ReadIniInt(
             L"General",
-            L10n(L"启用", L"Enabled"),
-            1) != 0;
+            Const::IniKeyEnabled,
+            -1);
+
+    const int legacyEnabledValue =
+        ReadIniInt(
+            L"General",
+            Const::IniKeyEnabledLegacy,
+            -1);
+
+    if (legacyEnabledValue != -1 &&
+        (cfg.language == UiLanguage::Chinese ||
+         enabledValue == -1))
+    {
+        cfg.enabled = legacyEnabledValue != 0;
+    }
+    else
+    {
+        cfg.enabled = enabledValue != 0;   // -1 (missing) => enabled
+    }
 
     cfg.sensitivityLog =
         std::clamp(
@@ -689,22 +747,12 @@ static void LoadConfig()
     cfg.startWithWindows =
         IsRunAtStartup();
 
-    cfg.language =
-        static_cast<UiLanguage>(
-            std::clamp(
-                ReadIniInt(
-                    L"General",
-                    L"Language",
-                    static_cast<int>(
-                        UiLanguage::Chinese)),
-                0,
-                1));
-
     {
         std::lock_guard<std::mutex> lock(
             g_cfgMutex);
 
         g_cfg = cfg;
+        g_committedCfg = cfg;
     }
 
     g_enabled.store(
@@ -713,6 +761,7 @@ static void LoadConfig()
 }
 
 
+// Persists g_committedCfg, never the live preview values in g_cfg.
 static void SaveConfig()
 {
     AppConfig cfg;
@@ -721,13 +770,20 @@ static void SaveConfig()
         std::lock_guard<std::mutex> lock(
             g_cfgMutex);
 
-        cfg = g_cfg;
+        cfg = g_committedCfg;
     }
 
     WriteIniInt(
         L"General",
-        L10n(L"启用", L"Enabled"),
+        Const::IniKeyEnabled,
         cfg.enabled ? 1 : 0);
+
+    // Remove the legacy localized key written by v1.0.0 / v1.0.1.
+    WritePrivateProfileStringW(
+        L"General",
+        Const::IniKeyEnabledLegacy,
+        nullptr,
+        g_configPath.c_str());
 
     WriteIniInt(
         L"General",
@@ -1760,6 +1816,19 @@ static LRESULT CALLBACK LowLevelMouseProc(
             const MSLLHOOKSTRUCT*>(
                 lParam);
 
+    // If we swallowed a middle-button DOWN, always swallow the matching UP,
+    // even if the cursor has since left the whitelisted window or the tool
+    // was disabled in between. Otherwise another window would receive an
+    // orphaned WM_MBUTTONUP.
+    if (nCode == HC_ACTION &&
+        wParam == WM_MBUTTONUP &&
+        g_swallowMiddleUp.exchange(
+            false,
+            std::memory_order_relaxed))
+    {
+        return 1;
+    }
+
     if (nCode == HC_ACTION &&
         info &&
         (info->flags &
@@ -1834,15 +1903,6 @@ static LRESULT CALLBACK LowLevelMouseProc(
 
                 return 1;
             }
-        }
-
-        if (wParam ==
-            WM_MBUTTONUP &&
-            g_swallowMiddleUp.exchange(
-                false,
-                std::memory_order_relaxed))
-        {
-            return 1;
         }
     }
 
@@ -1937,10 +1997,13 @@ static void UpdateTrayTooltip()
         cfg = g_cfg;
     }
 
+    const bool zh =
+        cfg.language == UiLanguage::Chinese;
+
     const wchar_t* state =
         cfg.enabled
-        ? (cfg.language == UiLanguage::Chinese ? L"已启用" : L10n(L"启用", L"Enabled"))
-        : (cfg.language == UiLanguage::Chinese ? L"已禁用" : L"Disabled");
+        ? (zh ? L"已启用" : L"Enabled")
+        : (zh ? L"已禁用" : L"Disabled");
 
     swprintf_s(
         g_nid.szTip,
@@ -2100,6 +2163,14 @@ static void ShowTrayMenu()
         0,
         g_mainWindow,
         nullptr);
+
+    // Documented workaround (KB135788): make sure the menu closes correctly
+    // and a second right-click shows it again.
+    PostMessageW(
+        g_mainWindow,
+        WM_NULL,
+        0,
+        0);
 
     DestroyMenu(
         menu);
@@ -2327,7 +2398,7 @@ static void UpdateSensitivityLabel(
 
     swprintf_s(
         text,
-        L"%.1f%% per wheel notch",
+        L10n(L"每格滚轮 %.1f%%", L"%.1f%% per notch"),
         percent);
 
     SetWindowTextW(
@@ -2384,7 +2455,7 @@ static void ApplySettingsLanguage(HWND settings)
         settings,
         zh
             ? L"Continuous Pinch V3 设置"
-            : L"Continuous Pinch V3 设置");
+            : L"Continuous Pinch V3 Settings");
 
     SetWindowTextW(
         GetDlgItem(settings, Const::IDC_ENABLED),
@@ -2460,20 +2531,15 @@ static void ApplySettingsLanguage(HWND settings)
         if (currentMode >= 0 && currentMode <= 1)
             SendMessageW(targetMode, CB_SETCURSEL, currentMode, 0);
     }
+
+    // Re-render the sensitivity readout in the new language.
+    UpdateSensitivityLabel(settings);
 }
 
 static void PopulateSettingsFromConfig(
-    HWND settings)
+    HWND settings,
+    const AppConfig& cfg)
 {
-    AppConfig cfg;
-
-    {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
-
-        cfg = g_cfg;
-    }
-
     SendMessageW(
         GetDlgItem(
             settings,
@@ -2645,7 +2711,7 @@ static bool ApplySettingsFromWindow(
         std::lock_guard<std::mutex> lock(
             g_cfgMutex);
 
-        newCfg = g_cfg;
+        newCfg = g_committedCfg;
     }
 
     newCfg.enabled =
@@ -2819,6 +2885,7 @@ static bool ApplySettingsFromWindow(
             g_cfgMutex);
 
         g_cfg = newCfg;
+        g_committedCfg = newCfg;
     }
 
     g_enabled.store(
@@ -2857,6 +2924,10 @@ static bool ApplySettingsFromWindow(
 }
 
 
+// "Defaults" only fills the controls with default values. Nothing is
+// committed until Apply / Close. Like manual edits, only the preview fields
+// (sensitivity, curve, language) take effect live; whitelist, modifiers and
+// the enabled flag keep their committed values until applied.
 static void ResetSettingsToDefaults(
     HWND settings)
 {
@@ -2866,18 +2937,34 @@ static void ResetSettingsToDefaults(
         std::lock_guard<std::mutex> lock(
             g_cfgMutex);
 
-        const bool currentStartup =
-            g_cfg.startWithWindows;
+        // Start-with-Windows is a system setting; Defaults keeps it as is.
+        defaults.startWithWindows =
+            g_committedCfg.startWithWindows;
 
-        g_cfg = defaults;
-
-        // Defaults button should not silently change startup until Apply.
-        g_cfg.startWithWindows =
-            currentStartup;
+        g_cfg.sensitivityLog = defaults.sensitivityLog;
+        g_cfg.curve = defaults.curve;
+        g_cfg.language = defaults.language;
     }
 
     PopulateSettingsFromConfig(
-        settings);
+        settings,
+        defaults);
+
+    UpdateTrayTooltip();
+}
+
+
+// Discards unapplied preview values (used when Settings is closed via X).
+static void RevertSettingsPreview()
+{
+    {
+        std::lock_guard<std::mutex> lock(
+            g_cfgMutex);
+
+        g_cfg = g_committedCfg;
+    }
+
+    UpdateTrayTooltip();
 }
 
 
@@ -3159,8 +3246,18 @@ static LRESULT CALLBACK SettingsWndProc(
 
             SetControlFont(close);
 
+            AppConfig cfg;
+
+            {
+                std::lock_guard<std::mutex> lock(
+                    g_cfgMutex);
+
+                cfg = g_committedCfg;
+            }
+
             PopulateSettingsFromConfig(
-                hwnd);
+                hwnd,
+                cfg);
 
             return 0;
         }
@@ -3275,6 +3372,9 @@ static LRESULT CALLBACK SettingsWndProc(
 
         case WM_CLOSE:
         {
+            // X = cancel: drop unapplied preview values.
+            RevertSettingsPreview();
+
             ShowWindow(
                 hwnd,
                 SW_HIDE);
@@ -3356,8 +3456,39 @@ static void ShowSettingsWindow()
     if (!g_settingsWindow)
         return;
 
+    // Already open: just bring it forward, keep the user's pending edits.
+    if (IsWindowVisible(
+            g_settingsWindow))
+    {
+        if (IsIconic(
+                g_settingsWindow))
+        {
+            ShowWindow(
+                g_settingsWindow,
+                SW_RESTORE);
+        }
+
+        SetForegroundWindow(
+            g_settingsWindow);
+
+        return;
+    }
+
+    // Fresh open: start from the committed configuration.
+    RevertSettingsPreview();
+
+    AppConfig cfg;
+
+    {
+        std::lock_guard<std::mutex> lock(
+            g_cfgMutex);
+
+        cfg = g_committedCfg;
+    }
+
     PopulateSettingsFromConfig(
-        g_settingsWindow);
+        g_settingsWindow,
+        cfg);
 
     ShowWindow(
         g_settingsWindow,
@@ -3380,11 +3511,13 @@ static void ToggleEnabled()
         std::lock_guard<std::mutex> lock(
             g_cfgMutex);
 
-        g_cfg.enabled =
-            !g_cfg.enabled;
-
         enabled =
-            g_cfg.enabled;
+            !g_committedCfg.enabled;
+
+        // Tray toggles commit immediately. Update only this field so any
+        // unapplied preview values in g_cfg are neither saved nor lost.
+        g_committedCfg.enabled = enabled;
+        g_cfg.enabled = enabled;
     }
 
     g_enabled.store(
@@ -3399,20 +3532,49 @@ static void ToggleEnabled()
 
     SaveConfig();
     UpdateTrayTooltip();
+
+    // Keep an open Settings window in sync, so a later Apply does not
+    // silently undo the tray toggle.
+    if (g_settingsWindow)
+    {
+        SendMessageW(
+            GetDlgItem(
+                g_settingsWindow,
+                Const::IDC_ENABLED),
+            BM_SETCHECK,
+            enabled ? BST_CHECKED : BST_UNCHECKED,
+            0);
+    }
 }
 
 
 static void ToggleStartup()
 {
+    bool startup;
+
     {
         std::lock_guard<std::mutex> lock(
             g_cfgMutex);
 
-        g_cfg.startWithWindows =
-            !g_cfg.startWithWindows;
+        startup =
+            !g_committedCfg.startWithWindows;
+
+        g_committedCfg.startWithWindows = startup;
+        g_cfg.startWithWindows = startup;
     }
 
     SaveConfig();
+
+    if (g_settingsWindow)
+    {
+        SendMessageW(
+            GetDlgItem(
+                g_settingsWindow,
+                Const::IDC_STARTUP),
+            BM_SETCHECK,
+            startup ? BST_CHECKED : BST_UNCHECKED,
+            0);
+    }
 }
 
 
@@ -3422,6 +3584,14 @@ static LRESULT CALLBACK MainWndProc(
     WPARAM wParam,
     LPARAM lParam)
 {
+    if (g_taskbarCreatedMsg != 0 &&
+        msg == g_taskbarCreatedMsg)
+    {
+        AddTrayIcon();
+        UpdateTrayTooltip();
+        return 0;
+    }
+
     switch (msg)
     {
         case Const::WM_APP_WHEEL:
@@ -3607,6 +3777,60 @@ int WINAPI wWinMain(
     SetProcessDpiAwarenessContext(
         DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
+    // Single instance: a second launch opens the running instance's Settings
+    // instead of creating a second hook, touchpad and tray icon.
+    HANDLE instanceMutex =
+        CreateMutexW(
+            nullptr,
+            FALSE,
+            Const::SingleInstanceMutex);
+
+    if (instanceMutex &&
+        GetLastError() ==
+            ERROR_ALREADY_EXISTS)
+    {
+        HWND existing =
+            FindWindowW(
+                Const::MainWindowClass,
+                nullptr);
+
+        if (existing)
+        {
+            DWORD pid = 0;
+
+            GetWindowThreadProcessId(
+                existing,
+                &pid);
+
+            // Let the running instance bring Settings to the foreground.
+            AllowSetForegroundWindow(
+                pid);
+
+            PostMessageW(
+                existing,
+                Const::WM_APP_SHOW_SETTINGS,
+                0,
+                0);
+        }
+
+        CloseHandle(
+            instanceMutex);
+
+        return 0;
+    }
+
+    // Held for the lifetime of the process; released on every return path.
+    struct MutexHolder
+    {
+        HANDLE handle;
+
+        ~MutexHolder()
+        {
+            if (handle)
+                CloseHandle(handle);
+        }
+    } instanceMutexHolder{ instanceMutex };
+
     timeBeginPeriod(1);
 
     INITCOMMONCONTROLSEX icc{};
@@ -3649,7 +3873,7 @@ int WINAPI wWinMain(
     }
 
     const wchar_t* mainClass =
-        L"ContinuousPinchV3MainWindow";
+        Const::MainWindowClass;
 
     WNDCLASSEXW wc{};
     wc.cbSize = sizeof(wc);
@@ -3678,14 +3902,25 @@ int WINAPI wWinMain(
         return 1;
     }
 
+    // A hidden top-level window, NOT a message-only (HWND_MESSAGE) window:
+    //   - message-only windows cannot become the foreground window, so the
+    //     tray menu would not close when clicking elsewhere;
+    //   - message-only windows do not receive broadcasts such as
+    //     TaskbarCreated, WM_DISPLAYCHANGE and WM_QUERYENDSESSION;
+    //   - FindWindowW() (used by the single-instance check) skips them.
+    // The window is never shown; WS_EX_TOOLWINDOW keeps it out of Alt+Tab.
+    g_taskbarCreatedMsg =
+        RegisterWindowMessageW(
+            L"TaskbarCreated");
+
     g_mainWindow =
         CreateWindowExW(
-            0,
+            WS_EX_TOOLWINDOW,
             mainClass,
             Const::AppName,
-            0,
+            WS_POPUP,
             0, 0, 0, 0,
-            HWND_MESSAGE,
+            nullptr,
             nullptr,
             hInstance,
             nullptr);
@@ -3695,6 +3930,16 @@ int WINAPI wWinMain(
         DestroyTouchpadDevice();
         timeEndPeriod(1);
         return 1;
+    }
+
+    // Allow TaskbarCreated through UIPI in case the tool runs elevated.
+    if (g_taskbarCreatedMsg != 0)
+    {
+        ChangeWindowMessageFilterEx(
+            g_mainWindow,
+            g_taskbarCreatedMsg,
+            MSGFLT_ALLOW,
+            nullptr);
     }
 
     if (!CreateSettingsWindow(
