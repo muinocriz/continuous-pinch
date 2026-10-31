@@ -262,10 +262,11 @@ continuous-pinch/
 │  ├─ Main.cpp               # 入口、主窗口消息、托盘命令
 │  ├─ Common.h               # 公共头文件、常量、配置类型
 │  ├─ Config.h/.cpp          # 配置状态、INI 读写、开机启动、本地化
+│  ├─ InputThread.h/.cpp     # 输入线程：消息循环、按需高精度帧定时器、配置快照
 │  ├─ Pinch.h/.cpp           # 捏合手势状态机：滚轮、平滑、分段、复位
-│  ├─ Touchpad.h/.cpp        # Windows 11 Synthetic Precision Touchpad 设备
-│  ├─ Target.h/.cpp          # 目标应用（白名单）判定
-│  ├─ MouseHook.h/.cpp       # WH_MOUSE_LL 低级鼠标钩子
+│  ├─ Touchpad.h/.cpp        # Windows 11 Synthetic Precision Touchpad 设备与帧注入
+│  ├─ Target.h/.cpp          # 目标应用（白名单）判定与缓存
+│  ├─ MouseHook.h/.cpp       # WH_MOUSE_LL 低级鼠标钩子（运行在输入线程）
 │  ├─ Tray.h/.cpp            # 托盘图标与菜单
 │  ├─ SettingsWindow.h/.cpp  # 设置窗口、退出热键
 │  ├─ Util.h/.cpp            # 时间、字符串、路径工具

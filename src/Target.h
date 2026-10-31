@@ -1,14 +1,21 @@
 #pragma once
 
 // Target application (whitelist) detection.
+//
+// Used only on the input thread (from the mouse hook and the frame timer),
+// so the cache needs no locking.
 
 #include "Common.h"
 
-// Whether the current target window belongs to a whitelisted application.
-extern std::atomic<bool> g_targetAllowed;
+// Whether the target window belongs to a whitelisted application.
+//
+//   Hover mode      : the top-level window under `cursor`
+//   Foreground mode : the foreground window (`cursor` is ignored)
+//
+// `whitelist` holds lower-case executable names (see ParseWhitelist()).
+// The process lookup only runs when the target window or its process
+// changes; otherwise the cached answer is returned.
+bool IsTargetAllowed(TargetMode mode, POINT cursor, const std::vector<std::wstring>& whitelist);
 
-// Refresh the whitelist result for the selected target mode.
-// Hover mode uses WindowFromPoint(); foreground mode uses GetForegroundWindow().
-// Process lookup runs only when the selected root HWND changes, or when
-// force=true after config changes.
-void RefreshTargetAllowed(bool force = false);
+// Forget the cached answer, e.g. after the whitelist changed.
+void InvalidateTargetCache();

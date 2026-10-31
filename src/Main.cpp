@@ -25,11 +25,8 @@
 
 #include "App.h"
 #include "Config.h"
-#include "MouseHook.h"
-#include "Pinch.h"
+#include "InputThread.h"
 #include "SettingsWindow.h"
-#include "Target.h"
-#include "Touchpad.h"
 #include "Tray.h"
 
 #pragma comment(lib, "user32.lib")
@@ -65,12 +62,8 @@ static void ToggleEnabled()
         g_cfg.enabled = enabled;
     }
 
-    g_enabled.store(enabled, std::memory_order_relaxed);
-
-    if (!enabled && g_pinch.active)
-    {
-        EndActiveSegment();
-    }
+    // Lifts an active gesture on the input thread if the tool was disabled.
+    NotifyInputConfigChanged();
 
     SaveConfig();
     UpdateTrayTooltip();
@@ -119,30 +112,14 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 
     switch (msg)
     {
-        case Const::WM_APP_WHEEL:
+        case Const::WM_APP_HARD_RESET_FAILED:
         {
-            const short delta = static_cast<short>(LOWORD(wParam));
-
-            ApplyWheelDelta(delta);
-
-            return 0;
-        }
-
-        case Const::WM_APP_SOFT_RESET:
-        {
-            RequestSoftReset();
-            return 0;
-        }
-
-        case Const::WM_APP_HARD_RESET:
-        {
-            if (!HardResetDevice())
-            {
-                MessageBoxW(nullptr,
-                            L10n(L"硬复位失败：无法重新创建虚拟触控板。",
-                                 L"Hard reset failed to recreate the synthetic touchpad."),
-                            Const::AppName, MB_OK | MB_ICONERROR);
-            }
+            // Posted by the input thread; shown here so the input thread
+            // never blocks in a message box.
+            MessageBoxW(nullptr,
+                        L10n(L"硬复位失败：无法重新创建虚拟触控板。",
+                             L"Hard reset failed to recreate the synthetic touchpad."),
+                        Const::AppName, MB_OK | MB_ICONERROR);
 
             return 0;
         }
@@ -151,17 +128,6 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         {
             ShowSettingsWindow();
             return 0;
-        }
-
-        case WM_TIMER:
-        {
-            if (wParam == Const::AnimationTimerId)
-            {
-                TickPinch();
-                return 0;
-            }
-
-            break;
         }
 
         case WM_HOTKEY:
@@ -206,11 +172,11 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                     return 0;
 
                 case Const::IDM_TRAY_RESET:
-                    RequestSoftReset();
+                    PostInputCommand(Const::WM_INPUT_SOFT_RESET);
                     return 0;
 
                 case Const::IDM_TRAY_HARDRESET:
-                    HardResetDevice();
+                    PostInputCommand(Const::WM_INPUT_HARD_RESET);
                     return 0;
 
                 case Const::IDM_TRAY_STARTUP:
@@ -227,30 +193,25 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 
         case WM_DISPLAYCHANGE:
         {
-            if (g_pinch.active)
-                EndActiveSegment();
+            PostInputCommand(Const::WM_INPUT_END_GESTURE);
 
             return 0;
         }
 
         case WM_QUERYENDSESSION:
         {
-            if (g_pinch.active)
-                EndActiveSegment();
+            PostInputCommand(Const::WM_INPUT_END_GESTURE);
 
             return TRUE;
         }
 
         case WM_DESTROY:
         {
-            if (g_pinch.active)
-                EndActiveSegment();
+            // Lifts any active contacts, removes the hook and destroys the
+            // touchpad on the input thread, then joins it.
+            StopInputThread();
 
             RemoveTrayIcon();
-
-            DestroyTouchpadDevice();
-
-            KillTimer(hwnd, Const::AnimationTimerId);
 
             UnregisterHotKey(hwnd, Const::ExitHotkeyId);
 
@@ -309,8 +270,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
         }
     } instanceMutexHolder{instanceMutex};
 
-    timeBeginPeriod(1);
-
     INITCOMMONCONTROLSEX icc{};
     icc.dwSize = sizeof(icc);
     icc.dwICC = ICC_BAR_CLASSES | ICC_STANDARD_CLASSES | ICC_WIN95_CLASSES;
@@ -320,23 +279,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
     g_configPath = GetConfigPath();
 
     LoadConfig();
-
-    if (!CreateTouchpadDevice())
-    {
-        const DWORD err = GetLastError();
-
-        wchar_t text[512]{};
-
-        swprintf_s(text,
-                   L"Failed to create a Windows 11 synthetic precision touchpad.\n\n"
-                   L"GetLastError = %lu",
-                   err);
-
-        MessageBoxW(nullptr, text, Const::AppName, MB_OK | MB_ICONERROR);
-
-        timeEndPeriod(1);
-        return 1;
-    }
 
     const wchar_t* mainClass = Const::MainWindowClass;
 
@@ -350,8 +292,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
     if (!RegisterClassExW(&wc))
     {
-        DestroyTouchpadDevice();
-        timeEndPeriod(1);
         return 1;
     }
 
@@ -369,8 +309,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
     if (!g_mainWindow)
     {
-        DestroyTouchpadDevice();
-        timeEndPeriod(1);
         return 1;
     }
 
@@ -383,34 +321,46 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
     if (!CreateSettingsWindow(hInstance))
     {
         DestroyWindow(g_mainWindow);
-
-        timeEndPeriod(1);
         return 1;
     }
 
-    if (!SetTimer(g_mainWindow, Const::AnimationTimerId, Const::AnimationIntervalMs, nullptr))
-    {
-        DestroyWindow(g_mainWindow);
+    // Creates the synthetic touchpad and installs the mouse hook on the
+    // input thread. Needs g_mainWindow (the input thread posts to it).
+    InputStartError inputError{};
 
-        timeEndPeriod(1);
+    if (!StartInputThread(hInstance, inputError))
+    {
+        const wchar_t* what = L"";
+
+        switch (inputError.stage)
+        {
+            case InputStartError::Stage::Touchpad:
+                what = L"Failed to create a Windows 11 synthetic precision touchpad.";
+                break;
+
+            case InputStartError::Stage::Timer:
+                what = L"Failed to create the frame timer.";
+                break;
+
+            case InputStartError::Stage::MouseHook:
+                what = L"Failed to install the low-level mouse hook.";
+                break;
+
+            case InputStartError::Stage::None:
+                break;
+        }
+
+        wchar_t text[512]{};
+
+        swprintf_s(text, L"%s\n\nGetLastError = %lu", what, inputError.code);
+
+        MessageBoxW(nullptr, text, Const::AppName, MB_OK | MB_ICONERROR);
+
+        DestroyWindow(g_mainWindow);
         return 1;
     }
 
     RegisterExitHotkey();
-
-    // Default target mode is Hover, so the browser does not need focus.
-    // Existing users can switch to Foreground mode in Settings.
-    RefreshTargetAllowed(true);
-
-    g_mouseHook = SetWindowsHookExW(WH_MOUSE_LL, LowLevelMouseProc, hInstance, 0);
-
-    if (!g_mouseHook)
-    {
-        DestroyWindow(g_mainWindow);
-
-        timeEndPeriod(1);
-        return 1;
-    }
 
     AddTrayIcon();
     UpdateTrayTooltip();
@@ -431,12 +381,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
         DispatchMessageW(&msg);
     }
 
-    if (g_mouseHook)
-    {
-        UnhookWindowsHookEx(g_mouseHook);
-
-        g_mouseHook = nullptr;
-    }
+    // Normally already stopped in WM_DESTROY; harmless if so.
+    StopInputThread();
 
     if (g_settingsWindow)
     {
@@ -446,8 +392,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
     }
 
     g_mainWindow = nullptr;
-
-    timeEndPeriod(1);
 
     return 0;
 }

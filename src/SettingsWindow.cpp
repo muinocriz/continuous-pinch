@@ -2,8 +2,7 @@
 
 #include "App.h"
 #include "Config.h"
-#include "Pinch.h"
-#include "Target.h"
+#include "InputThread.h"
 #include "Tray.h"
 #include "Util.h"
 
@@ -182,6 +181,8 @@ static void UpdateSensitivityLabel(HWND settings)
 
         g_cfg.sensitivityLog = logValue;
     }
+
+    NotifyInputConfigChanged();
 }
 
 
@@ -193,9 +194,13 @@ static void UpdateCurveRealtime(HWND settings)
 
     if (index >= 0 && index <= 3)
     {
-        std::lock_guard<std::mutex> lock(g_cfgMutex);
+        {
+            std::lock_guard<std::mutex> lock(g_cfgMutex);
 
-        g_cfg.curve = static_cast<SmoothingCurve>(index);
+            g_cfg.curve = static_cast<SmoothingCurve>(index);
+        }
+
+        NotifyInputConfigChanged();
     }
 }
 
@@ -409,17 +414,11 @@ static bool ApplySettingsFromWindow(HWND settings, bool showErrors)
         g_committedCfg = newCfg;
     }
 
-    g_enabled.store(newCfg.enabled, std::memory_order_relaxed);
-
-    if (!newCfg.enabled && g_pinch.active)
-    {
-        EndActiveSegment();
-    }
+    // The input thread re-reads the config: picks up the new whitelist and
+    // target mode, and lifts an active gesture if the tool was disabled.
+    NotifyInputConfigChanged();
 
     SaveConfig();
-
-    // Whitelist or target mode may have changed, so force a fresh check.
-    RefreshTargetAllowed(true);
 
     const bool hotkeyOk = RegisterExitHotkey();
 
@@ -458,6 +457,8 @@ static void ResetSettingsToDefaults(HWND settings)
         g_cfg.language = defaults.language;
     }
 
+    NotifyInputConfigChanged();
+
     PopulateSettingsFromConfig(settings, defaults);
 
     UpdateTrayTooltip();
@@ -473,6 +474,7 @@ static void RevertSettingsPreview()
         g_cfg = g_committedCfg;
     }
 
+    NotifyInputConfigChanged();
     UpdateTrayTooltip();
 }
 
@@ -705,7 +707,7 @@ bool CreateSettingsWindow(HINSTANCE hInstance)
     wc.cbSize = sizeof(wc);
     wc.lpfnWndProc = SettingsWndProc;
     wc.hInstance = hInstance;
-    wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(IDC_ARROW));
+    wc.hCursor = LoadCursorW(nullptr, reinterpret_cast<LPCWSTR>(IDC_ARROW));
     wc.hIcon = LoadIconW(hInstance, MAKEINTRESOURCEW(IDI_APP_ICON));
     wc.hIconSm = LoadIconW(hInstance, MAKEINTRESOURCEW(IDI_APP_ICON));
     wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);

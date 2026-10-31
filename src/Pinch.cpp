@@ -1,7 +1,5 @@
 #include "Pinch.h"
 
-#include "Config.h"
-#include "Target.h"
 #include "Touchpad.h"
 #include "Util.h"
 
@@ -9,7 +7,31 @@
 // Pinch state
 // ============================================================================
 
-PinchState g_pinch;
+namespace
+{
+
+struct PinchState
+{
+    bool active = false;
+    bool softResetting = false;
+
+    double targetLogZoom = 0.0;
+    double appliedLogZoom = 0.0;
+
+    double segmentBaseLogZoom = 0.0;
+    double currentDistance = Const::BaseDistance;
+
+    POINT lastP1{};
+    POINT lastP2{};
+
+    double lastWheelTime = 0.0;
+    double lastTickTime = 0.0;
+    double lastProgressTime = 0.0;
+};
+
+}  // namespace
+
+static PinchState g_pinch;
 
 
 static void FingerPositionsForDistance(double distance, POINT& p1, POINT& p2)
@@ -32,45 +54,6 @@ static double MaxLogZoom()
 }
 
 
-static bool InjectTouchpadFrame(const POINT& p1, const POINT& p2, bool contactsActive)
-{
-    if (!g_touchpad)
-        return false;
-
-    POINTER_TYPE_INFO infos[2]{};
-    const POINT points[2] = {p1, p2};
-
-    for (UINT32 i = 0; i < 2; ++i)
-    {
-        auto& info = infos[i];
-
-        auto& pointerInfo = info.touchInfo.pointerInfo;
-
-        info.type = PT_TOUCHPAD;
-
-        pointerInfo.pointerId = i;
-
-        pointerInfo.pointerFlags =
-            contactsActive
-                ? (POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT | POINTER_FLAG_CONFIDENCE)
-                : POINTER_FLAG_CONFIDENCE;
-
-        pointerInfo.ptHimetricLocation = points[i];
-
-        pointerInfo.dwTime = g_pinch.syntheticTime;
-    }
-
-    if (!InjectSyntheticPointerInput(g_touchpad, infos, 2))
-    {
-        return false;
-    }
-
-    g_pinch.syntheticTime += Const::AnimationIntervalMs;
-
-    return true;
-}
-
-
 static void ClearActiveSegmentOnly()
 {
     g_pinch.active = false;
@@ -79,12 +62,12 @@ static void ClearActiveSegmentOnly()
 }
 
 
-bool EndActiveSegment()
+static bool LiftActiveSegment()
 {
     if (!g_pinch.active)
         return true;
 
-    if (!InjectTouchpadFrame(g_pinch.lastP1, g_pinch.lastP2, false))
+    if (!InjectTouchpadFrame(g_pinch.lastP1, g_pinch.lastP2, TouchpadFrame::Up))
     {
         return false;
     }
@@ -95,12 +78,18 @@ bool EndActiveSegment()
 }
 
 
+void EndActiveSegment()
+{
+    LiftActiveSegment();
+}
+
+
 static bool BeginSegment()
 {
     if (g_pinch.active)
         return true;
 
-    if (!g_touchpad && !CreateTouchpadDevice())
+    if (!HasTouchpadDevice() && !CreateTouchpadDevice())
     {
         return false;
     }
@@ -114,7 +103,7 @@ static bool BeginSegment()
 
     g_pinch.currentDistance = Const::BaseDistance;
 
-    if (!InjectTouchpadFrame(p1, p2, true))
+    if (!InjectTouchpadFrame(p1, p2, TouchpadFrame::Down))
     {
         return false;
     }
@@ -171,19 +160,11 @@ bool HardResetDevice()
 // Wheel input
 // ============================================================================
 
-void ApplyWheelDelta(short wheelDelta)
+void ApplyWheelDelta(short wheelDelta, double sensitivityLog)
 {
-    if (wheelDelta == 0 || !g_enabled.load(std::memory_order_relaxed))
+    if (wheelDelta == 0)
     {
         return;
-    }
-
-    AppConfig cfg;
-
-    {
-        std::lock_guard<std::mutex> lock(g_cfgMutex);
-
-        cfg = g_cfg;
     }
 
     double notches = static_cast<double>(wheelDelta) / static_cast<double>(WHEEL_DELTA);
@@ -192,7 +173,7 @@ void ApplyWheelDelta(short wheelDelta)
 
     const double oldTarget = g_pinch.targetLogZoom;
 
-    g_pinch.targetLogZoom += cfg.sensitivityLog * notches;
+    g_pinch.targetLogZoom += sensitivityLog * notches;
 
     g_pinch.targetLogZoom = std::clamp(g_pinch.targetLogZoom, 0.0, MaxLogZoom());
 
@@ -270,40 +251,6 @@ static double CalculateSmoothedDistance(double current, double desired, double d
 
 
 // ============================================================================
-// Current modifier state (also used by the animation state machine)
-// ============================================================================
-
-UINT CurrentModifierMaskForState()
-{
-    UINT mask = MM_NONE;
-
-    if (GetAsyncKeyState(VK_MENU) & 0x8000)
-        mask |= MM_ALT;
-
-    if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
-        mask |= MM_CTRL;
-
-    if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
-        mask |= MM_SHIFT;
-
-    return mask;
-}
-
-
-static bool ZoomModifierStillHeld()
-{
-    UINT expected = MM_ALT;
-
-    {
-        std::lock_guard<std::mutex> lock(g_cfgMutex);
-        expected = g_cfg.zoomModifiers;
-    }
-
-    return CurrentModifierMaskForState() == expected;
-}
-
-
-// ============================================================================
 // Animation
 // ============================================================================
 
@@ -329,21 +276,22 @@ static void RecoverAfterInjectionFailure()
 }
 
 
-void TickPinch()
+bool IsPinchActive()
 {
-    // Refresh the selected target mode (hover by default, or foreground).
-    // Root HWND caching prevents repeated process-name lookups at 125 Hz.
-    RefreshTargetAllowed();
+    return g_pinch.active;
+}
 
+
+bool PinchNeedsTicks()
+{
+    return g_pinch.active || g_pinch.softResetting
+           || std::abs(g_pinch.targetLogZoom - g_pinch.appliedLogZoom) > Const::LogZoomEpsilon;
+}
+
+
+void TickPinch(SmoothingCurve curve, bool zoomModifierHeld, bool targetAllowed)
+{
     const double now = NowSeconds();
-
-    if (!g_enabled.load(std::memory_order_relaxed))
-    {
-        if (g_pinch.active)
-            EndActiveSegment();
-
-        return;
-    }
 
     if (!g_pinch.active
         && std::abs(g_pinch.targetLogZoom - g_pinch.appliedLogZoom) <= Const::LogZoomEpsilon)
@@ -361,7 +309,14 @@ void TickPinch()
     if (!g_pinch.active)
     {
         if (!BeginSegment())
+        {
+            // The touchpad could not be (re)created or the first frame was
+            // rejected. Drop the pending animation instead of retrying at
+            // frame rate; the next wheel event will try again.
+            g_pinch.targetLogZoom = g_pinch.appliedLogZoom;
+            g_pinch.softResetting = false;
             return;
+        }
     }
 
     double dt = now - g_pinch.lastTickTime;
@@ -376,16 +331,8 @@ void TickPinch()
         std::clamp(Const::BaseDistance * std::exp(desiredSegmentLogDelta), Const::MinDistance,
                    Const::MaxDistance);
 
-    AppConfig cfg;
-
-    {
-        std::lock_guard<std::mutex> lock(g_cfgMutex);
-
-        cfg = g_cfg;
-    }
-
     const double newDistance = CalculateSmoothedDistance(g_pinch.currentDistance, desiredDistance,
-                                                         dt, g_pinch.softResetting, cfg.curve);
+                                                         dt, g_pinch.softResetting, curve);
 
     POINT p1{};
     POINT p2{};
@@ -397,7 +344,7 @@ void TickPinch()
 
     if (moved)
     {
-        if (!InjectTouchpadFrame(p1, p2, true))
+        if (!InjectTouchpadFrame(p1, p2, TouchpadFrame::Update))
         {
             RecoverAfterInjectionFailure();
             return;
@@ -444,10 +391,6 @@ void TickPinch()
     {
         g_pinch.appliedLogZoom = g_pinch.targetLogZoom;
 
-        const bool zoomModifierHeld = ZoomModifierStillHeld();
-
-        const bool targetStillAllowed = g_targetAllowed.load(std::memory_order_relaxed);
-
         // V3.1 slow-wheel behavior:
         //
         // While the configured zoom modifier is still held, keep the two
@@ -465,7 +408,7 @@ void TickPinch()
         //   - soft reset has completed, or
         //   - the zoom modifier is released/changed, or
         //   - the selected target is no longer a whitelisted application.
-        if (g_pinch.softResetting || !zoomModifierHeld || !targetStillAllowed)
+        if (g_pinch.softResetting || !zoomModifierHeld || !targetAllowed)
         {
             EndActiveSegment();
 
@@ -482,7 +425,7 @@ void TickPinch()
 
     // Watchdog is only a fallback for a genuinely orphaned gesture. Do not
     // interrupt a gesture the user is intentionally holding with Alt.
-    if (g_pinch.active && !ZoomModifierStillHeld()
+    if (g_pinch.active && !zoomModifierHeld
         && (now - g_pinch.lastProgressTime) > Const::WatchdogSec)
     {
         EndActiveSegment();

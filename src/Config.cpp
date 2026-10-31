@@ -6,8 +6,6 @@ AppConfig g_cfg;
 AppConfig g_committedCfg;
 std::mutex g_cfgMutex;
 
-std::atomic<bool> g_enabled{true};
-
 std::wstring g_configPath;
 
 // ============================================================================
@@ -222,8 +220,6 @@ void LoadConfig()
         g_cfg = cfg;
         g_committedCfg = cfg;
     }
-
-    g_enabled.store(cfg.enabled, std::memory_order_relaxed);
 }
 
 

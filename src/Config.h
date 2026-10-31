@@ -14,8 +14,6 @@ extern AppConfig g_cfg;
 extern AppConfig g_committedCfg;
 extern std::mutex g_cfgMutex;
 
-extern std::atomic<bool> g_enabled;
-
 extern std::wstring g_configPath;
 
 UiLanguage CurrentLanguage();

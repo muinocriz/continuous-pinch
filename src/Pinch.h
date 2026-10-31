@@ -1,36 +1,34 @@
 #pragma once
 
 // Pinch gesture state machine: wheel input, smoothing, segments, reset.
+//
+// All functions run on the input thread. The engine does not read the
+// global configuration or the keyboard itself: the input thread passes in
+// what it needs, so the engine stays single-threaded and testable.
 
 #include "Common.h"
 
-struct PinchState
-{
-    bool active = false;
-    bool softResetting = false;
+// Adds wheel notches to the target zoom and starts a segment if needed.
+void ApplyWheelDelta(short wheelDelta, double sensitivityLog);
 
-    double targetLogZoom = 0.0;
-    double appliedLogZoom = 0.0;
-
-    double segmentBaseLogZoom = 0.0;
-    double currentDistance = Const::BaseDistance;
-
-    POINT lastP1{};
-    POINT lastP2{};
-
-    DWORD syntheticTime = 1;
-
-    double lastWheelTime = 0.0;
-    double lastTickTime = 0.0;
-    double lastProgressTime = 0.0;
-};
-
-extern PinchState g_pinch;
-
-bool EndActiveSegment();
+// Smoothly returns to the logical 100% baseline.
 void RequestSoftReset();
-bool HardResetDevice();
-void ApplyWheelDelta(short wheelDelta);
-void TickPinch();
 
-UINT CurrentModifierMaskForState();
+// Lifts any active contacts and recreates the synthetic touchpad.
+bool HardResetDevice();
+
+// Lifts the contacts of the active segment, if any.
+void EndActiveSegment();
+
+// Advances the animation by one frame.
+//   zoomModifierHeld : the configured zoom modifiers are currently held
+//   targetAllowed    : the current target window is whitelisted
+void TickPinch(SmoothingCurve curve, bool zoomModifierHeld, bool targetAllowed);
+
+// True while contacts are down.
+bool IsPinchActive();
+
+// True while TickPinch() still has work to do (contacts down, an animation
+// in progress, or a soft reset finishing). When false the frame timer can
+// be stopped.
+bool PinchNeedsTicks();

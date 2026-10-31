@@ -1,9 +1,10 @@
 #pragma once
 
-// WH_MOUSE_LL hook: Alt+Wheel zoom, Alt+Middle reset.
+// WH_MOUSE_LL hook: modifier+Wheel zooms, modifier+Middle resets.
+//
+// Installed by the input thread; the callback runs on that thread.
 
 #include "Common.h"
 
-extern HHOOK g_mouseHook;
-
-LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
+bool InstallMouseHook(HINSTANCE hInstance);
+void UninstallMouseHook();

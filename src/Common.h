@@ -19,6 +19,7 @@
 #include <cwchar>
 #include <cwctype>
 #include <mutex>
+#include <thread>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -50,11 +51,11 @@ constexpr double MinDistance = 1000.0;
 constexpr double MaxDistance = 8200.0;
 constexpr double MaxLogicalScale = 16.0;
 
-constexpr UINT AnimationTimerId = 1;
-constexpr UINT AnimationIntervalMs = 8;  // ~125 Hz
+// Gesture frame interval. The input thread drives it with a high-resolution
+// waitable timer that only runs while a gesture is in progress.
+constexpr UINT AnimationIntervalMs = 8;  // 125 Hz
 constexpr double DistanceEpsilon = 2.0;
 constexpr double LogZoomEpsilon = 0.0015;
-constexpr double ReleaseDelaySec = 0.120;
 constexpr double WatchdogSec = 3.0;
 constexpr double MaxAbsNotchesPerEvent = 5.0;
 
@@ -72,11 +73,16 @@ constexpr int ExitHotkeyId = 3001;
 constexpr UINT TrayIconId = 1;
 constexpr UINT WM_TRAY = WM_APP + 20;
 
-// App messages
-constexpr UINT WM_APP_WHEEL = WM_APP + 1;
-constexpr UINT WM_APP_SOFT_RESET = WM_APP + 2;
-constexpr UINT WM_APP_HARD_RESET = WM_APP + 3;
+// Main (UI) window messages
 constexpr UINT WM_APP_SHOW_SETTINGS = WM_APP + 4;
+constexpr UINT WM_APP_HARD_RESET_FAILED = WM_APP + 5;
+
+// Input thread messages (PostThreadMessage)
+constexpr UINT WM_INPUT_WHEEL = WM_APP + 101;       // wParam: wheel delta, lParam: Alt held
+constexpr UINT WM_INPUT_SOFT_RESET = WM_APP + 102;  // lParam: Alt held
+constexpr UINT WM_INPUT_HARD_RESET = WM_APP + 103;  // lParam: Alt held
+constexpr UINT WM_INPUT_CONFIG_CHANGED = WM_APP + 104;
+constexpr UINT WM_INPUT_END_GESTURE = WM_APP + 105;
 
 // Tray menu IDs
 constexpr UINT IDM_TRAY_ENABLE = 4001;

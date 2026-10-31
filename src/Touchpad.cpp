@@ -25,7 +25,12 @@ using PFN_CreateSyntheticPointerDevice2 =
     HSYNTHETICPOINTERDEVICE(WINAPI*)(const SyntheticDeviceCreationParamsCompat*);
 
 static PFN_CreateSyntheticPointerDevice2 g_CreateSyntheticPointerDevice2 = nullptr;
-HSYNTHETICPOINTERDEVICE g_touchpad = nullptr;
+static HSYNTHETICPOINTERDEVICE g_touchpad = nullptr;
+
+// v1.0.x timing: a private counter starting at 1 that advances by the
+// nominal frame interval on every injected frame. Reset when the device is
+// (re)created, as v1.0.x reset it together with the pinch state.
+static DWORD g_syntheticTime = 1;
 
 
 // ============================================================================
@@ -75,6 +80,8 @@ bool CreateTouchpadDevice()
 
     SetLastError(ERROR_SUCCESS);
 
+    g_syntheticTime = 1;
+
     g_touchpad = g_CreateSyntheticPointerDevice2(&params);
 
     return g_touchpad != nullptr;
@@ -89,4 +96,57 @@ void DestroyTouchpadDevice()
     DestroySyntheticPointerDevice(g_touchpad);
 
     g_touchpad = nullptr;
+}
+
+
+bool HasTouchpadDevice()
+{
+    return g_touchpad != nullptr;
+}
+
+
+// ============================================================================
+// Frame injection
+// ============================================================================
+
+// v1.0.x flags: contacts down => INRANGE | INCONTACT | CONFIDENCE,
+// lifted => CONFIDENCE only. No DOWN / UPDATE / UP transition flags.
+static POINTER_FLAGS FlagsForFrame(TouchpadFrame frame)
+{
+    return frame == TouchpadFrame::Up
+               ? POINTER_FLAG_CONFIDENCE
+               : (POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT | POINTER_FLAG_CONFIDENCE);
+}
+
+
+bool InjectTouchpadFrame(const POINT& p1, const POINT& p2, TouchpadFrame frame)
+{
+    if (!g_touchpad)
+        return false;
+
+    POINTER_TYPE_INFO infos[2]{};
+    const POINT points[2] = {p1, p2};
+
+    const POINTER_FLAGS flags = FlagsForFrame(frame);
+    const DWORD time = g_syntheticTime;
+
+    for (UINT32 i = 0; i < 2; ++i)
+    {
+        auto& info = infos[i];
+        auto& pointerInfo = info.touchInfo.pointerInfo;
+
+        info.type = PT_TOUCHPAD;
+
+        pointerInfo.pointerId = i;
+        pointerInfo.pointerFlags = flags;
+        pointerInfo.ptHimetricLocation = points[i];
+        pointerInfo.dwTime = time;
+    }
+
+    if (!InjectSyntheticPointerInput(g_touchpad, infos, 2))
+        return false;
+
+    g_syntheticTime += Const::AnimationIntervalMs;
+
+    return true;
 }
