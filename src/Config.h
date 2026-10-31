@@ -19,9 +19,21 @@ extern std::wstring g_configPath;
 UiLanguage CurrentLanguage();
 const wchar_t* L10n(const wchar_t* zh, const wchar_t* en);
 
+// Chooses the INI location: beside the EXE when possible (portable),
+// otherwise %APPDATA%\ContinuousPinch.
 std::wstring GetConfigPath();
 
-bool IsRunAtStartup();
+enum class StartupRegistration
+{
+    None,      // no Run entry
+    ThisExe,   // the Run entry starts this EXE
+    OtherPath  // the Run entry starts another copy / an old location
+};
+
+// Reads HKCU\...\Run. `registeredPath` receives the EXE the entry points to.
+StartupRegistration QueryStartupRegistration(std::wstring* registeredPath = nullptr);
+
+// Points the Run entry at this EXE, or removes it.
 bool SetRunAtStartup(bool enabled);
 
 void LoadConfig();

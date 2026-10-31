@@ -29,6 +29,7 @@ namespace Const
 
 constexpr wchar_t AppName[] = L"Continuous Pinch V3";
 constexpr wchar_t ConfigFileName[] = L"continuous_pinch_v3.ini";
+constexpr wchar_t AppDataFolderName[] = L"ContinuousPinch";
 constexpr wchar_t RunRegistryValue[] = L"ContinuousPinchV3";
 constexpr wchar_t MainWindowClass[] = L"ContinuousPinchV3MainWindow";
 constexpr wchar_t SingleInstanceMutex[] = L"Local\\ContinuousPinchV3.SingleInstance";
