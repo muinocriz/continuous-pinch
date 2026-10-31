@@ -18,6 +18,10 @@
   <img src="https://img.shields.io/badge/version-v1.3.0-brightgreen" alt="v1.3.0">
 </p>
 
+<p align="center">
+  <a href="https://muinocriz.github.io/continuous-pinch/">项目主页：在线查看三种缩放方式的动画对比</a>
+</p>
+
 ---
 
 Continuous Pinch 是一个面向 Windows 11 的鼠标滚轮捏合缩放工具。
@@ -295,6 +299,7 @@ continuous-pinch/
 │  ├─ SettingsWindow.h/.cpp  # 设置对话框（模板在 app.rc）、退出热键
 │  ├─ Util.h/.cpp            # 时间、字符串、路径工具
 │  └─ App.h                  # 全局窗口句柄
+├─ docs/                    # GitHub Pages 项目主页（index.html 及其图片）
 ├─ assets/
 │  ├─ app-logo.png
 │  ├─ gifs/

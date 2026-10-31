@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Continuous Pinch：用鼠标滚轮实现触控板捏合缩放</title>
+<meta name="description" content="Continuous Pinch 把鼠标滚轮变成 Windows 11 触控板的双指捏合，让 Chrome / Edge 像触控板一样平滑、以指针为中心地放大页面，而不改变排版。">
+<meta property="og:title" content="Continuous Pinch">
+<meta property="og:description" content="用鼠标滚轮实现 Windows 11 触控板捏合缩放。">
+<meta property="og:image" content="assets/logo-256.png">
+<link rel="icon" href="assets/favicon-64.png">
+<style>
+/* ------------------------------------------------------------------
+   Tokens
+   ------------------------------------------------------------------ */
+:root {
+  --ink: #161a33;          /* logo navy: text, stage */
+  --ink-2: #1e2347;
+  --slate: #5a6178;        /* secondary text */
+  --mist: #eef1f5;         /* page background (aluminium) */
+  --sheet: #ffffff;
+  --rule: #d7dce5;
+  --cyan: #22d3ee;         /* logo cyan: our touch contacts on dark */
+  --cyan-ink: #0e7c93;     /* cyan readable on light */
+  --violet: #8b8cf8;       /* logo periwinkle */
+  --muted: #9aa1b1;        /* Ctrl + wheel (the old way) */
+
+  --font: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei",
+          "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei",
+          "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+
+  --measure: 68ch;
+  --radius-window: 10px;   /* browser windows, screenshots */
+  --radius-key: 6px;       /* keycaps */
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--ink);
+  background: var(--mist);
+}
+img { max-width: 100%; display: block; }
+a { color: var(--cyan-ink); text-underline-offset: 3px; }
+a:hover { color: var(--ink); }
+:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
+.wrap { width: min(1180px, 100% - 48px); margin-inline: auto; }
+
+/* ------------------------------------------------------------------
+   Top bar
+   ------------------------------------------------------------------ */
+.topbar { background: var(--ink); color: #e6e9f5; }
+.topbar .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; font-weight: 600; font-size: 17px; }
+.brand img { width: 32px; height: 32px; }
+.topbar nav { display: flex; gap: 22px; margin-left: auto; font-size: 15px; }
+.topbar nav a { color: #b9bfd8; text-decoration: none; }
+.topbar nav a:hover { color: #fff; }
+.lang {
+  font: inherit; font-size: 14px; color: #fff; background: transparent;
+  border: 1px solid #3a4170; border-radius: 999px; padding: 4px 14px; cursor: pointer;
+}
+.lang:hover { border-color: var(--cyan); }
+
+/* ------------------------------------------------------------------
+   Stage: headline + three-way live comparison
+   ------------------------------------------------------------------ */
+.stage {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 0%, #1f3d5c 0%, transparent 70%),
+    var(--ink);
+  color: #e6e9f5;
+  padding: 44px 0 64px;
+}
+.stage h1 {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4.4vw, 52px);
+  line-height: 1.12;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+  max-width: 18em;
+}
+.stage .lede { color: #b9bfd8; font-size: 19px; max-width: 40em; margin: 18px 0 0; }
+.stage .actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 28px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: inherit; font-weight: 600; font-size: 16px; text-decoration: none;
+  padding: 11px 22px; border-radius: 999px; cursor: pointer; border: 0;
+}
+.btn-primary { background: linear-gradient(100deg, var(--cyan), var(--violet)); color: var(--ink); }
+.btn-primary:hover { color: var(--ink); filter: brightness(1.08); }
+.btn-ghost { background: transparent; color: #e6e9f5; box-shadow: inset 0 0 0 1px #3a4170; }
+.btn-ghost:hover { color: #fff; box-shadow: inset 0 0 0 1px var(--cyan); }
+
+.demos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  margin-top: 40px;
+}
+.demo { margin: 0; display: flex; flex-direction: column; }
+.demo-head { min-height: 58px; }
+.demo-title { font-weight: 650; font-size: 18px; color: #fff; margin: 0; }
+.demo-sub { color: #9ba3c4; font-size: 14px; margin: 2px 0 0; }
+.demo[data-mode="ours"] .demo-title { color: var(--cyan); }
+
+.browser {
+  border-radius: var(--radius-window);
+  background: #2a2f55;
+  overflow: hidden;
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.6);
+}
+.demo[data-mode="ours"] .browser { box-shadow: 0 0 0 1.5px var(--cyan), 0 24px 60px -20px rgba(34, 211, 238, 0.35); }
+.chrome { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; }
+.chrome i { width: 9px; height: 9px; border-radius: 50%; background: #4a5180; display: block; }
+.omnibox {
+  flex: 1; height: 22px; border-radius: 11px; background: #1c2044; color: #8f97bd;
+  font-size: 11px; display: flex; align-items: center; padding: 0 10px; gap: 6px; white-space: nowrap; overflow: hidden;
+}
+.omnibox .zoom-pill {
+  margin-left: auto; display: none; align-items: center; gap: 3px;
+  color: #fff; background: #3d4478; border-radius: 8px; padding: 0 6px; font-size: 10px; line-height: 16px;
+}
+.omnibox .zoom-pill.on { display: inline-flex; }
+.viewport { position: relative; aspect-ratio: 4 / 3; background: var(--sheet); overflow: hidden; }
+.page { position: absolute; inset: 0; color: #1d2333; font-size: 11px; line-height: 1.55; padding: 12px 14px; will-change: transform; }
+.page .art { display: block; width: 100%; height: 116px; border-radius: 6px; }
+.page h3 { font-size: 14px; margin: 9px 0 1px; line-height: 1.3; text-align: center; }
+.page .meta { color: #6b7385; font-size: 10px; margin: 0 0 6px; text-align: center; }
+.page p { margin: 0 0 6px; }
+.cursor { position: absolute; width: 16px; height: 22px; pointer-events: none; z-index: 2; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+
+.device { display: flex; align-items: center; justify-content: center; gap: 18px; height: 104px; margin-top: 14px; }
+.touchpad {
+  position: relative; width: 150px; height: 96px; border-radius: 12px;
+  background: linear-gradient(160deg, #2e3460, #23284d); box-shadow: inset 0 0 0 1px #3d4478;
+}
+.touchpad.mini { width: 84px; height: 56px; border-radius: 9px; }
+.finger {
+  position: absolute; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.95) 0 30%, var(--cyan) 60%, rgba(34,211,238,0) 72%);
+  opacity: 0; transition: opacity .18s;
+}
+.touchpad.mini .finger { width: 16px; height: 16px; margin: -8px 0 0 -8px; }
+.touchpad.on .finger { opacity: 1; }
+.device-note { font-size: 12px; color: #9ba3c4; text-align: center; margin-top: 2px; }
+.key {
+  min-width: 46px; height: 34px; padding: 0 10px; border-radius: var(--radius-key);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600; color: #c8cde6;
+  background: #2a2f55; box-shadow: inset 0 -3px 0 #1b1f3d, inset 0 0 0 1px #3d4478;
+  transition: transform .08s, background .12s, color .12s;
+}
+.key.down { transform: translateY(2px); box-shadow: inset 0 -1px 0 #1b1f3d, inset 0 0 0 1px #3d4478; }
+.demo[data-mode="ours"] .key.down { background: var(--cyan); color: var(--ink); }
+.demo[data-mode="ctrl"] .key.down { background: var(--muted); color: var(--ink); }
+.mouse { width: 52px; height: 80px; position: relative; }
+.mouse svg { width: 100%; height: 100%; overflow: visible; }
+.wheel-ticks { transition: transform .12s ease-out; }
+.mouse .tick { fill: #8f97bd; }
+.demo[data-mode="ours"] .mouse.spin .tick { fill: var(--cyan); }
+.arrow { color: #5a628f; font-size: 18px; }
+
+.readout {
+  margin-top: 10px; display: flex; align-items: baseline; justify-content: center; gap: 8px;
+  font-variant-numeric: tabular-nums; color: #9ba3c4; font-size: 14px;
+}
+.readout b { font-family: var(--font-display); font-size: 28px; font-weight: 600; color: #fff; min-width: 3.4em; text-align: center; }
+.demo[data-mode="ours"] .readout b { color: var(--cyan); }
+.demo[data-mode="ctrl"] .readout b { color: var(--muted); }
+
+.stage-controls { display: flex; align-items: center; gap: 16px; margin-top: 36px; color: #9ba3c4; font-size: 14px; }
+.play {
+  font: inherit; font-size: 14px; color: #e6e9f5; background: transparent; cursor: pointer;
+  border: 1px solid #3a4170; border-radius: 999px; padding: 5px 16px;
+}
+.play:hover { border-color: var(--cyan); }
+
+/* ------------------------------------------------------------------
+   Content sections (light)
+   ------------------------------------------------------------------ */
+section.block { padding: 88px 0 0; }
+section.block:last-of-type { padding-bottom: 96px; }
+.block h2 {
+  font-family: var(--font-display); font-size: clamp(26px, 3.2vw, 36px); line-height: 1.2;
+  font-weight: 650; margin: 0 0 12px; letter-spacing: -0.005em;
+}
+.block .intro { color: var(--slate); max-width: var(--measure); margin: 0 0 36px; }
+
+/* Comparison table */
+.compare-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+.compare-table th, .compare-table td { text-align: left; vertical-align: top; padding: 16px 18px; border-bottom: 1px solid var(--rule); }
+.compare-table thead th { font-size: 15px; font-weight: 650; color: var(--slate); border-bottom: 2px solid var(--ink); }
+.compare-table tbody th { font-weight: 600; width: 16%; color: var(--slate); }
+.compare-table .ours { background: rgba(34, 211, 238, 0.09); }
+.compare-table thead .ours { color: var(--cyan-ink); }
+.compare-table td.bad { color: #7a8091; }
+.compare-table td .mark { display: inline-block; width: 1.3em; font-weight: 700; }
+.compare-table td .yes { color: var(--cyan-ink); }
+.compare-table td .no { color: #b04a4a; }
+.table-scroll { overflow-x: auto; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Features */
+.features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 34px 56px; margin: 0; }
+.features dt { font-weight: 650; font-size: 18px; margin: 0 0 4px; }
+.features dd { margin: 0; color: var(--slate); max-width: 46ch; }
+
+/* Shortcuts */
+.shortcuts { display: grid; grid-template-columns: max-content 1fr; gap: 14px 32px; align-items: center; margin: 0; }
+.shortcuts dt { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.shortcuts dd { margin: 0; color: var(--slate); }
+.kbd {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 32px; padding: 0 10px;
+  border-radius: var(--radius-key); background: var(--sheet); font-weight: 600; font-size: 14px;
+  box-shadow: inset 0 -3px 0 #cfd5e0, inset 0 0 0 1px #c4cbd8;
+}
+.plus { color: var(--slate); }
+
+/* How it works: a real sequence, so it is numbered */
+.steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; counter-reset: step; }
+.steps li { counter-increment: step; position: relative; padding: 0 22px 0 0; }
+.steps li::before {
+  content: counter(step); display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff; font-weight: 650; font-size: 15px; margin-bottom: 14px;
+}
+.steps li:not(:last-child)::after {
+  content: ""; position: absolute; top: 17px; left: 44px; right: 10px; height: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--violet));
+}
+.steps b { display: block; font-size: 16px; margin-bottom: 4px; }
+.steps span { color: var(--slate); font-size: 15px; }
+
+/* Download */
+.download { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 64px; align-items: start; }
+.download .btn-primary { font-size: 17px; padding: 13px 26px; }
+.download ul { padding-left: 1.2em; color: var(--slate); margin: 22px 0 0; }
+.download li { margin: 6px 0; }
+.shot { border-radius: var(--radius-window); box-shadow: 0 20px 50px -24px rgba(22, 26, 51, 0.45); }
+.shot-cap { color: var(--slate); font-size: 14px; margin-top: 10px; }
+
+footer { background: var(--ink); color: #9ba3c4; font-size: 14px; padding: 36px 0; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; }
+footer a { color: #c8cde6; }
+footer .spacer { margin-left: auto; }
+
+/* ------------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------------ */
+@media (max-width: 960px) {
+  .demos { grid-template-columns: 1fr; gap: 48px; max-width: 460px; }
+  .demo-head { min-height: 0; margin-bottom: 12px; }
+  .features { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; gap: 24px; }
+  .steps li { padding: 0 0 0 52px; }
+  .steps li::before { position: absolute; left: 0; top: -4px; }
+  .steps li:not(:last-child)::after { top: 34px; bottom: -22px; left: 16px; right: auto; width: 2px; height: auto; background: linear-gradient(180deg, var(--cyan), var(--violet)); }
+  .download { grid-template-columns: 1fr; gap: 40px; }
+  .topbar nav { display: none; }
+  .topbar .lang { margin-left: auto; }
+}
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  .shortcuts { grid-template-columns: 1fr; gap: 6px 0; }
+  .shortcuts dd { margin-bottom: 12px; }
+  .compare-table th, .compare-table td { padding: 12px 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wheel-ticks, .key, .finger { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Continuous Pinch">
+      <img src="assets/logo-256.png" alt="" width="32" height="32">
+      <span>Continuous Pinch</span>
+    </a>
+    <nav aria-label="页面导航" data-i18n-attr="aria-label:navLabel">
+      <a href="#compare" data-i18n="navCompare">对比</a>
+      <a href="#features" data-i18n="navFeatures">功能</a>
+      <a href="#shortcuts" data-i18n="navShortcuts">快捷键</a>
+      <a href="#how" data-i18n="navHow">工作原理</a>
+      <a href="#download" data-i18n="navDownload">下载</a>
+    </nav>
+    <button class="lang" type="button" id="langToggle" lang="en">English</button>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="stage" aria-labelledby="heroTitle">
+  <div class="wrap">
+    <h1 id="heroTitle" data-i18n="heroTitle">用鼠标滚轮，像触控板一样捏合缩放</h1>
+    <p class="lede" data-i18n="heroLede">按住 Alt 滚动滚轮，Continuous Pinch 会在 Windows 11 中模拟一块触控板的双指捏合。Chrome 和 Edge 会像在触控板上一样，以指针为中心平滑放大，页面排版保持不变。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="https://github.com/muinocriz/continuous-pinch/releases/latest" data-i18n="ctaDownload">下载 Windows 版</a>
+      <a class="btn btn-ghost" href="https://github.com/muinocriz/continuous-pinch" data-i18n="ctaSource">查看源代码</a>
+    </div>
+
+    <div class="demos" id="demos" role="img" aria-labelledby="demoDesc">
+      <!-- Panels are built by script from #panelTemplate -->
+    </div>
+    <p id="demoDesc" hidden data-i18n="demoDesc">动画对比：触控板捏合与 Continuous Pinch 都以指针为中心平滑放大页面，排版不变；Ctrl 加滚轮按 110%、125% 等档位跳变，页面重新排版，指针下的内容被推开。</p>
+
+    <div class="stage-controls">
+      <button class="play" type="button" id="playToggle" data-i18n="pause">暂停</button>
+      <span data-i18n="demoHint">三个窗口同时收到同样的缩放操作。</span>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="compare" aria-labelledby="compareTitle">
+  <div class="wrap">
+    <h2 id="compareTitle" data-i18n="compareTitle">和 Ctrl + 滚轮有什么不同</h2>
+    <p class="intro" data-i18n="compareIntro">浏览器自带的 Ctrl + 滚轮改变的是页面缩放比例，整个页面会重新排版。触控板捏合放大的是视图本身，就像拿放大镜看页面。Continuous Pinch 让普通鼠标也能用后一种方式。</p>
+    <div class="table-scroll">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th scope="col"><span class="sr" data-i18n="colAspect">比较项</span></th>
+            <th scope="col" data-i18n="colTouchpad">触控板双指捏合</th>
+            <th scope="col" class="ours">Continuous Pinch</th>
+            <th scope="col" data-i18n="colCtrl">Ctrl + 滚轮</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row" data-i18n="rowMotion">缩放过程</th>
+            <td><span class="mark yes">✓</span><span data-i18n="motionSmooth">连续平滑</span></td>
+            <td class="ours"><span class="mark yes">✓</span><span data-i18n="motionSmooth">连续平滑</span></td>
+            <td class="bad"><span class="mark no">✗</span><span data-i18n="motionSteps">按 110%、125%、150% 等档位跳变</span></td>
+          </tr>
+          <tr>
+            <th scope="row" data-i18n="rowCenter">缩放中心</th>
+            <td><span class="mark yes">✓</span><span data-i18n="centerFingers">两指之间</span></td>
+            <td class="ours"><span class="mark yes">✓</span><span data-i18n="centerPointer">鼠标指针所在的位置</span></td>
+            <td class="bad"><span class="mark no">✗</span><span data-i18n="centerTopLeft">页面左上角，指针下的内容会被推开</span></td>
+          </tr>
+          <tr>
+            <th scope="row" data-i18n="rowLayout">页面排版</th>
+            <td><span class="mark yes">✓</span><span data-i18n="layoutKept">不变，像放大镜</span></td>
+            <td class="ours"><span class="mark yes">✓</span><span data-i18n="layoutKept">不变，像放大镜</span></td>
+            <td class="bad"><span class="mark no">✗</span><span data-i18n="layoutReflow">重新排版，文字换行、图片移位</span></td>
+          </tr>
+          <tr>
+            <th scope="row" data-i18n="rowScope">影响范围</th>
+            <td><span class="mark yes">✓</span><span data-i18n="scopePage">只影响当前页面</span></td>
+            <td class="ours"><span class="mark yes">✓</span><span data-i18n="scopePage">只影响当前页面</span></td>
+            <td class="bad"><span class="mark no">✗</span><span data-i18n="scopeSite">浏览器会记住，同一网站的其他页面也跟着变</span></td>
+          </tr>
+          <tr>
+            <th scope="row" data-i18n="rowDevice">需要的设备</th>
+            <td class="bad"><span class="mark no">✗</span><span data-i18n="deviceTouchpad">精确式触控板</span></td>
+            <td class="ours"><span class="mark yes">✓</span><span data-i18n="deviceMouse">普通鼠标</span></td>
+            <td><span class="mark yes">✓</span><span data-i18n="deviceMouse">普通鼠标</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="features" aria-labelledby="featuresTitle">
+  <div class="wrap">
+    <h2 id="featuresTitle" data-i18n="featuresTitle">功能</h2>
+    <p class="intro" data-i18n="featuresIntro">安装后常驻托盘，只对白名单中的浏览器生效，其他程序的滚轮完全不受影响。</p>
+    <dl class="features">
+      <div><dt data-i18n="f1t">真正的触控板手势</dt><dd data-i18n="f1d">通过 Windows 11 的虚拟精确式触控板注入双指捏合，浏览器收到的就是触控板手势，而不是模拟按键。</dd></div>
+      <div><dt data-i18n="f2t">指向即可缩放</dt><dd data-i18n="f2d">鼠标停在哪个浏览器窗口上，就缩放哪个窗口，不用先点击让它获得焦点。</dd></div>
+      <div><dt data-i18n="f3t">每个窗口各自记录</dt><dd data-i18n="f3d">每个浏览器窗口单独记住自己的缩放基准，缩小时不会低于 100%；按 Alt 加中键即可平滑回到 100%。</dd></div>
+      <div><dt data-i18n="f4t">慢速滚动也连贯</dt><dd data-i18n="f4d">按住 Alt 时，一格一格慢慢滚也是同一个手势，不会断成几段。</dd></div>
+      <div><dt data-i18n="f5t">不打扰日常使用</dt><dd data-i18n="f5d">松开 Alt 不会激活浏览器菜单；不缩放时程序处于休眠状态，几乎不占用 CPU。</dd></div>
+      <div><dt data-i18n="f6t">按你的习惯调整</dt><dd data-i18n="f6d">可调灵敏度、四种平滑曲线、修饰键、退出热键和应用白名单，支持中文和英文界面。</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="block" id="shortcuts" aria-labelledby="shortcutsTitle">
+  <div class="wrap">
+    <h2 id="shortcutsTitle" data-i18n="shortcutsTitle">默认快捷键</h2>
+    <p class="intro" data-i18n="shortcutsIntro">所有修饰键都可以在设置窗口中修改。</p>
+    <dl class="shortcuts">
+      <dt><span class="kbd">Alt</span><span class="plus">+</span><span class="kbd" data-i18n="kWheelUp">滚轮向上</span></dt><dd data-i18n="sZoomIn">放大</dd>
+      <dt><span class="kbd">Alt</span><span class="plus">+</span><span class="kbd" data-i18n="kWheelDown">滚轮向下</span></dt><dd data-i18n="sZoomOut">缩小，最多回到 100%</dd>
+      <dt><span class="kbd">Alt</span><span class="plus">+</span><span class="kbd" data-i18n="kMiddle">中键</span></dt><dd data-i18n="sSoft">把指针下的窗口平滑恢复到 100%</dd>
+      <dt><span class="kbd">Ctrl</span><span class="plus">+</span><span class="kbd">Alt</span><span class="plus">+</span><span class="kbd" data-i18n="kMiddle">中键</span></dt><dd data-i18n="sHard">重建虚拟触控板，缩放没有反应时使用</dd>
+      <dt><span class="kbd">Ctrl</span><span class="plus">+</span><span class="kbd">Alt</span><span class="plus">+</span><span class="kbd">Shift</span><span class="plus">+</span><span class="kbd">F12</span></dt><dd data-i18n="sExit">退出程序</dd>
+    </dl>
+  </div>
+</section>
+
+<section class="block" id="how" aria-labelledby="howTitle">
+  <div class="wrap">
+    <h2 id="howTitle" data-i18n="howTitle">工作原理</h2>
+    <p class="intro" data-i18n="howIntro">从一格滚轮到浏览器里的捏合缩放，中间经过这几步。</p>
+    <ol class="steps">
+      <li><b data-i18n="st1t">滚动滚轮</b><span data-i18n="st1d">按住 Alt，在浏览器上滚动鼠标滚轮。</span></li>
+      <li><b data-i18n="st2t">拦截滚轮</b><span data-i18n="st2d">低级鼠标钩子识别出这次滚动，不再交给浏览器。</span></li>
+      <li><b data-i18n="st3t">换算手势</b><span data-i18n="st3d">输入线程把滚动格数换算成两根手指的距离，并做平滑处理。</span></li>
+      <li><b data-i18n="st4t">注入触控板</b><span data-i18n="st4d">以 125 Hz 向 Windows 11 虚拟精确式触控板发送两指移动。</span></li>
+      <li><b data-i18n="st5t">浏览器缩放</b><span data-i18n="st5d">浏览器把它当作真实的触控板捏合，放大指针所在的位置。</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="block" id="download" aria-labelledby="downloadTitle">
+  <div class="wrap download">
+    <div>
+      <h2 id="downloadTitle" data-i18n="downloadTitle">下载</h2>
+      <p class="intro" data-i18n="downloadIntro">单个 EXE，无需安装。首次运行会打开设置窗口，之后常驻系统托盘。</p>
+      <a class="btn btn-primary" href="https://github.com/muinocriz/continuous-pinch/releases/latest" data-i18n="ctaDownloadLatest">下载最新版本</a>
+      <ul>
+        <li data-i18n="req1">需要 Windows 11</li>
+        <li data-i18n="req2">默认支持 Chrome 和 Edge，其他浏览器可加入白名单</li>
+        <li data-i18n="req3">浏览器以管理员身份运行时，本程序也需要以管理员身份运行</li>
+        <li><span data-i18n="req4">也可以自行编译，步骤见</span> <a href="https://github.com/muinocriz/continuous-pinch#编译">README</a></li>
+      </ul>
+    </div>
+    <figure style="margin:0">
+      <img class="shot" id="settingsShot" src="assets/settings-cn.png" width="649" height="800" alt="Continuous Pinch 设置窗口" data-i18n-attr="alt:shotAlt" loading="lazy">
+      <figcaption class="shot-cap" data-i18n="shotCap">设置窗口</figcaption>
+    </figure>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Continuous Pinch</span>
+    <a href="https://github.com/muinocriz/continuous-pinch">GitHub</a>
+    <a href="https://github.com/muinocriz/continuous-pinch/blob/master/CHANGELOG.md" data-i18n="changelog">更新记录</a>
+    <a href="https://github.com/muinocriz/continuous-pinch/issues" data-i18n="feedback">问题反馈</a>
+    <span class="spacer" data-i18n="footNote">仅适用于 Windows 11</span>
+  </div>
+</footer>
+
+<!-- One comparison panel; cloned three times. -->
+<template id="panelTemplate">
+  <figure class="demo">
+    <div class="demo-head">
+      <p class="demo-title"></p>
+      <p class="demo-sub"></p>
+    </div>
+    <div class="browser" aria-hidden="true">
+      <div class="chrome">
+        <i></i><i></i><i></i>
+        <div class="omnibox">
+          <span class="url">example.com/night-run</span>
+          <span class="zoom-pill"><svg width="9" height="9" viewBox="0 0 12 12"><circle cx="5" cy="5" r="3.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 8l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="pill-text">100%</span></span>
+        </div>
+      </div>
+      <div class="viewport">
+        <div class="page">
+          <svg class="art" viewBox="0 0 300 150" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#151a44"/><stop offset="1" stop-color="#3a4a8a"/></linearGradient>
+              <linearGradient id="lake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b3a74"/><stop offset="1" stop-color="#161a33"/></linearGradient>
+            </defs>
+            <rect width="300" height="150" fill="url(#sky)"/>
+            <circle cx="40" cy="22" r=".9" fill="#c9d2ff"/><circle cx="88" cy="40" r=".7" fill="#c9d2ff"/><circle cx="236" cy="18" r="1" fill="#c9d2ff"/><circle cx="268" cy="44" r=".7" fill="#c9d2ff"/><circle cx="120" cy="14" r=".8" fill="#c9d2ff"/>
+            <circle class="moon" cx="150" cy="72" r="14" fill="#f3f0d7"/>
+            <circle cx="145" cy="68" r="2.4" fill="#dcd8b8"/><circle cx="155" cy="77" r="1.7" fill="#dcd8b8"/><circle cx="153" cy="65" r="1.1" fill="#dcd8b8"/>
+            <path d="M0 104 L46 80 L92 100 L132 84 L176 104 L226 78 L300 98 V112 H0Z" fill="#232b5e"/>
+            <rect y="110" width="300" height="40" fill="url(#lake)"/>
+            <rect x="141" y="114" width="18" height="2" fill="#f3f0d7" opacity=".55"/><rect x="137" y="121" width="26" height="1.5" fill="#f3f0d7" opacity=".35"/><rect x="143" y="128" width="14" height="1.2" fill="#f3f0d7" opacity=".25"/>
+          </svg>
+          <h3 class="a-title"></h3>
+          <p class="meta a-meta"></p>
+          <p class="a-p1"></p>
+          <p class="a-p2"></p>
+          <p class="a-p3"></p>
+        </div>
+        <svg class="cursor" viewBox="0 0 16 22"><path d="M1 1v17l4.6-4.4 3 6.9 2.8-1.2-3-6.7H15z" fill="#fff" stroke="#161a33" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="device" aria-hidden="true"></div>
+    <div class="readout" aria-hidden="true"><span class="readout-label"></span><b>×1.00</b></div>
+  </figure>
+</template>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ----------------------------------------------------------------
+     Text
+     ---------------------------------------------------------------- */
+  const I18N = {
+    zh: {
+      docTitle: "Continuous Pinch：用鼠标滚轮实现触控板捏合缩放",
+      navLabel: "页面导航", navCompare: "对比", navFeatures: "功能", navShortcuts: "快捷键", navHow: "工作原理", navDownload: "下载",
+      heroTitle: "用鼠标滚轮，像触控板一样捏合缩放",
+      heroLede: "按住 Alt 滚动滚轮，Continuous Pinch 会在 Windows 11 中模拟一块触控板的双指捏合。Chrome 和 Edge 会像在触控板上一样，以指针为中心平滑放大，页面排版保持不变。",
+      ctaDownload: "下载 Windows 版", ctaSource: "查看源代码",
+      demoDesc: "动画对比：触控板捏合与 Continuous Pinch 都以指针为中心平滑放大页面，排版不变；Ctrl 加滚轮按 110%、125% 等档位跳变，页面重新排版，指针下的内容被推开。",
+      pause: "暂停", play: "播放",
+      demoHint: "三个窗口同时收到同样的缩放操作。",
+      pTouchTitle: "触控板双指捏合", pTouchSub: "笔记本触控板的原生手势",
+      pOursTitle: "Continuous Pinch", pOursSub: "普通鼠标：Alt + 滚轮",
+      pCtrlTitle: "Ctrl + 滚轮", pCtrlSub: "浏览器自带的页面缩放",
+      touchNote: "两指张开", oursNote: "程序生成的触控板手势", ctrlNote: "",
+      readScale: "视图放大", readZoom: "页面缩放",
+      aTitle: "环湖夜跑路线", aMeta: "5.2 公里，约 35 分钟",
+      aP1: "从北门出发，沿湖岸一路向东。九点以后路灯会调暗，建议带一盏头灯，在桥下的补给站稍作休息。",
+      aP2: "回程经过老码头时，可以放慢脚步看看对岸的灯火。周末人多，留意骑车的人。",
+      aP3: "终点在南门的小广场，那里有饮水机和存包柜，跑完可以慢走几圈再拉伸。",
+      compareTitle: "和 Ctrl + 滚轮有什么不同",
+      compareIntro: "浏览器自带的 Ctrl + 滚轮改变的是页面缩放比例，整个页面会重新排版。触控板捏合放大的是视图本身，就像拿放大镜看页面。Continuous Pinch 让普通鼠标也能用后一种方式。",
+      colAspect: "比较项", colTouchpad: "触控板双指捏合", colCtrl: "Ctrl + 滚轮",
+      rowMotion: "缩放过程", motionSmooth: "连续平滑", motionSteps: "按 110%、125%、150% 等档位跳变",
+      rowCenter: "缩放中心", centerFingers: "两指之间", centerPointer: "鼠标指针所在的位置", centerTopLeft: "页面左上角，指针下的内容会被推开",
+      rowLayout: "页面排版", layoutKept: "不变，像放大镜", layoutReflow: "重新排版，文字换行、图片移位",
+      rowScope: "影响范围", scopePage: "只影响当前页面", scopeSite: "浏览器会记住，同一网站的其他页面也跟着变",
+      rowDevice: "需要的设备", deviceTouchpad: "精确式触控板", deviceMouse: "普通鼠标",
+      featuresTitle: "功能",
+      featuresIntro: "安装后常驻托盘，只对白名单中的浏览器生效，其他程序的滚轮完全不受影响。",
+      f1t: "真正的触控板手势", f1d: "通过 Windows 11 的虚拟精确式触控板注入双指捏合，浏览器收到的就是触控板手势，而不是模拟按键。",
+      f2t: "指向即可缩放", f2d: "鼠标停在哪个浏览器窗口上，就缩放哪个窗口，不用先点击让它获得焦点。",
+      f3t: "每个窗口各自记录", f3d: "每个浏览器窗口单独记住自己的缩放基准，缩小时不会低于 100%；按 Alt 加中键即可平滑回到 100%。",
+      f4t: "慢速滚动也连贯", f4d: "按住 Alt 时，一格一格慢慢滚也是同一个手势，不会断成几段。",
+      f5t: "不打扰日常使用", f5d: "松开 Alt 不会激活浏览器菜单；不缩放时程序处于休眠状态，几乎不占用 CPU。",
+      f6t: "按你的习惯调整", f6d: "可调灵敏度、四种平滑曲线、修饰键、退出热键和应用白名单，支持中文和英文界面。",
+      shortcutsTitle: "默认快捷键", shortcutsIntro: "所有修饰键都可以在设置窗口中修改。",
+      kWheelUp: "滚轮向上", kWheelDown: "滚轮向下", kMiddle: "中键",
+      sZoomIn: "放大", sZoomOut: "缩小，最多回到 100%", sSoft: "把指针下的窗口平滑恢复到 100%",
+      sHard: "重建虚拟触控板，缩放没有反应时使用", sExit: "退出程序",
+      howTitle: "工作原理", howIntro: "从一格滚轮到浏览器里的捏合缩放，中间经过这几步。",
+      st1t: "滚动滚轮", st1d: "按住 Alt，在浏览器上滚动鼠标滚轮。",
+      st2t: "拦截滚轮", st2d: "低级鼠标钩子识别出这次滚动，不再交给浏览器。",
+      st3t: "换算手势", st3d: "输入线程把滚动格数换算成两根手指的距离，并做平滑处理。",
+      st4t: "注入触控板", st4d: "以 125 Hz 向 Windows 11 虚拟精确式触控板发送两指移动。",
+      st5t: "浏览器缩放", st5d: "浏览器把它当作真实的触控板捏合，放大指针所在的位置。",
+      downloadTitle: "下载", downloadIntro: "单个 EXE，无需安装。首次运行会打开设置窗口，之后常驻系统托盘。",
+      ctaDownloadLatest: "下载最新版本",
+      req1: "需要 Windows 11", req2: "默认支持 Chrome 和 Edge，其他浏览器可加入白名单",
+      req3: "浏览器以管理员身份运行时，本程序也需要以管理员身份运行", req4: "也可以自行编译，步骤见",
+      shotAlt: "Continuous Pinch 设置窗口", shotCap: "设置窗口", shotSrc: "assets/settings-cn.png",
+      changelog: "更新记录", feedback: "问题反馈", footNote: "仅适用于 Windows 11",
+      langButton: "English"
+    },
+    en: {
+      docTitle: "Continuous Pinch: touchpad pinch zoom with a mouse wheel",
+      navLabel: "Page navigation", navCompare: "Compare", navFeatures: "Features", navShortcuts: "Shortcuts", navHow: "How it works", navDownload: "Download",
+      heroTitle: "Pinch zoom with your mouse wheel, just like a touchpad",
+      heroLede: "Hold Alt and scroll. Continuous Pinch simulates a two-finger touchpad pinch on Windows 11, so Chrome and Edge zoom smoothly around the pointer while the page layout stays exactly as it was.",
+      ctaDownload: "Download for Windows", ctaSource: "View source code",
+      demoDesc: "Animated comparison: touchpad pinch and Continuous Pinch both zoom smoothly around the pointer without changing the layout; Ctrl plus wheel jumps between steps such as 110% and 125%, reflows the page and pushes the content under the pointer away.",
+      pause: "Pause", play: "Play",
+      demoHint: "All three windows receive the same zoom input.",
+      pTouchTitle: "Touchpad pinch", pTouchSub: "The laptop's native gesture",
+      pOursTitle: "Continuous Pinch", pOursSub: "Any mouse: Alt + wheel",
+      pCtrlTitle: "Ctrl + wheel", pCtrlSub: "The browser's built-in page zoom",
+      touchNote: "Two fingers spread", oursNote: "Touchpad gesture made by the app", ctrlNote: "",
+      readScale: "View zoom", readZoom: "Page zoom",
+      aTitle: "Lakeside night run", aMeta: "5.2 km, about 35 min",
+      aP1: "Start at the north gate and follow the shore east. Street lights dim after nine, so bring a head torch and rest at the water stop under the bridge.",
+      aP2: "On the way back, slow down at the old pier to see the lights across the lake. Weekends get busy, so watch for cyclists.",
+      aP3: "The route ends at the small square by the south gate, with water and lockers. Walk a lap or two before you stretch.",
+      compareTitle: "How it differs from Ctrl + wheel",
+      compareIntro: "The browser's Ctrl + wheel changes the page zoom level, so the whole page is laid out again. A touchpad pinch magnifies the view itself, like holding a magnifying glass over the page. Continuous Pinch brings the second kind to an ordinary mouse.",
+      colAspect: "Aspect", colTouchpad: "Touchpad pinch", colCtrl: "Ctrl + wheel",
+      rowMotion: "Motion", motionSmooth: "Smooth and continuous", motionSteps: "Jumps between 110%, 125%, 150% and so on",
+      rowCenter: "Zooms around", centerFingers: "The point between your fingers", centerPointer: "The mouse pointer", centerTopLeft: "The top-left corner; content under the pointer is pushed away",
+      rowLayout: "Layout", layoutKept: "Unchanged, like a magnifier", layoutReflow: "Laid out again; text rewraps and images move",
+      rowScope: "Affects", scopePage: "Only the current page", scopeSite: "Remembered by the browser for the whole site",
+      rowDevice: "Requires", deviceTouchpad: "A precision touchpad", deviceMouse: "Any mouse",
+      featuresTitle: "Features",
+      featuresIntro: "It runs in the system tray and only acts on whitelisted browsers. The wheel works as usual everywhere else.",
+      f1t: "A real touchpad gesture", f1d: "The pinch is injected through a Windows 11 virtual precision touchpad, so the browser receives a genuine touchpad gesture, not simulated keys.",
+      f2t: "Point and zoom", f2d: "It zooms the browser window under the pointer. No need to click it first.",
+      f3t: "Remembered per window", f3d: "Each browser window keeps its own zoom baseline and never zooms out below 100%. Alt + middle click eases it back to 100%.",
+      f4t: "Smooth even when scrolling slowly", f4d: "While Alt is held, slow notch-by-notch scrolling stays one continuous gesture.",
+      f5t: "Stays out of your way", f5d: "Releasing Alt does not open the browser menu, and the app sleeps when you are not zooming, using almost no CPU.",
+      f6t: "Tuned to your taste", f6d: "Adjust sensitivity, four smoothing curves, modifier keys, the exit hotkey and the browser whitelist, in Chinese or English.",
+      shortcutsTitle: "Default shortcuts", shortcutsIntro: "Every modifier key can be changed in the settings window.",
+      kWheelUp: "Wheel up", kWheelDown: "Wheel down", kMiddle: "Middle click",
+      sZoomIn: "Zoom in", sZoomOut: "Zoom out, down to 100%", sSoft: "Ease the window under the pointer back to 100%",
+      sHard: "Recreate the virtual touchpad if zooming stops responding", sExit: "Exit the app",
+      howTitle: "How it works", howIntro: "From one notch of the wheel to a pinch zoom in the browser.",
+      st1t: "Scroll", st1d: "Hold Alt and scroll the mouse wheel over a browser.",
+      st2t: "Capture", st2d: "A low-level mouse hook picks up the scroll and keeps it from reaching the browser.",
+      st3t: "Convert", st3d: "The input thread turns wheel notches into the distance between two fingers and smooths it.",
+      st4t: "Inject", st4d: "Two-finger movement is sent at 125 Hz to a Windows 11 virtual precision touchpad.",
+      st5t: "Zoom", st5d: "The browser treats it as a real touchpad pinch and zooms in where the pointer is.",
+      downloadTitle: "Download", downloadIntro: "A single EXE, no installation. The settings window opens on first run, then the app lives in the system tray.",
+      ctaDownloadLatest: "Download the latest version",
+      req1: "Requires Windows 11", req2: "Chrome and Edge work out of the box; add other browsers to the whitelist",
+      req3: "If the browser runs as administrator, run this app as administrator too", req4: "You can also build it yourself; see the",
+      shotAlt: "Continuous Pinch settings window", shotCap: "Settings window", shotSrc: "assets/settings-en.png",
+      changelog: "Changelog", feedback: "Report an issue", footNote: "Windows 11 only",
+      langButton: "中文"
+    }
+  };
+
+  let lang = "zh";
+  const t = (key) => I18N[lang][key] ?? I18N.zh[key] ?? "";
+
+  function readStoredLang() {
+    const fromUrl = new URLSearchParams(location.search).get("lang");
+    if (fromUrl === "en" || fromUrl === "zh") return fromUrl;
+    try { return localStorage.getItem("cp-lang") === "en" ? "en" : "zh"; } catch { return "zh"; }
+  }
+
+  function applyLang(next) {
+    lang = next;
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    document.title = t("docTitle");
+    document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll("[data-i18n-attr]").forEach((el) => {
+      const [attr, key] = el.dataset.i18nAttr.split(":");
+      el.setAttribute(attr, t(key));
+    });
+    const toggle = document.getElementById("langToggle");
+    toggle.textContent = t("langButton");
+    toggle.lang = lang === "zh" ? "en" : "zh-CN";
+    document.getElementById("settingsShot").src = t("shotSrc");
+    document.getElementById("playToggle").textContent = t(playing ? "pause" : "play");
+    panels.forEach((p) => p.applyText());
+    layoutPanels();
+    render();
+  }
+
+  document.getElementById("langToggle").addEventListener("click", () => {
+    applyLang(lang === "zh" ? "en" : "zh");
+    try { localStorage.setItem("cp-lang", lang); } catch { /* storage unavailable */ }
+  });
+
+  /* ----------------------------------------------------------------
+     Panels
+     ---------------------------------------------------------------- */
+  const MOUSE_SVG = `<svg viewBox="0 0 52 80"><rect x="2" y="2" width="48" height="76" rx="24" fill="#2a2f55" stroke="#3d4478" stroke-width="1.5"/>
+    <path d="M26 2v28M2 30h48" stroke="#3d4478" stroke-width="1.5"/>
+    <clipPath id="wclip-ID"><rect x="21" y="9" width="10" height="16" rx="5"/></clipPath>
+    <rect x="21" y="9" width="10" height="16" rx="5" fill="#1c2044"/>
+    <g clip-path="url(#wclip-ID)"><g class="wheel-ticks">${
+      Array.from({ length: 16 }, (_, i) => `<rect class="tick" x="22" y="${i * 4 - 24}" width="8" height="1.6" rx=".8"/>`).join("")
+    }</g></g></svg>`;
+
+  function deviceMarkup(mode, id) {
+    if (mode === "touch") {
+      return `<div><div class="touchpad"><span class="finger"></span><span class="finger"></span></div>
+              <div class="device-note" data-note="touchNote"></div></div>`;
+    }
+    const key = mode === "ours" ? "Alt" : "Ctrl";
+    const mouse = `<div class="mouse">${MOUSE_SVG.replaceAll("ID", id)}</div>`;
+    if (mode === "ours") {
+      return `<span class="key">${key}</span>${mouse}<span class="arrow">›</span>
+              <div><div class="touchpad mini"><span class="finger"></span><span class="finger"></span></div>
+              <div class="device-note" data-note="oursNote"></div></div>`;
+    }
+    return `<span class="key">${key}</span>${mouse}`;
+  }
+
+  const SPEC = [
+    { mode: "touch", title: "pTouchTitle", sub: "pTouchSub", read: "readScale" },
+    { mode: "ours", title: "pOursTitle", sub: "pOursSub", read: "readScale" },
+    { mode: "ctrl", title: "pCtrlTitle", sub: "pCtrlSub", read: "readZoom" }
+  ];
+
+  const tpl = document.getElementById("panelTemplate");
+  const host = document.getElementById("demos");
+
+  const panels = SPEC.map((spec, index) => {
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    node.dataset.mode = spec.mode;
+    // unique gradient ids per clone
+    node.querySelectorAll("[id]").forEach((el) => { el.id = `${el.id}-${index}`; });
+    node.querySelectorAll("[fill^='url(#']").forEach((el) => {
+      el.setAttribute("fill", el.getAttribute("fill").replace(/url\(#(\w+)\)/, `url(#$1-${index})`));
+    });
+    node.querySelector(".device").innerHTML = deviceMarkup(spec.mode, `p${index}`);
+    host.appendChild(node);
+
+    const q = (s) => node.querySelector(s);
+    const panel = {
+      spec, node,
+      page: q(".page"), viewport: q(".viewport"), cursor: q(".cursor"), moon: q(".moon"),
+      readout: q(".readout b"), pill: q(".zoom-pill"), pillText: q(".pill-text"),
+      key: q(".key"), mouse: q(".mouse"), ticks: q(".wheel-ticks"),
+      pad: q(".touchpad"), fingers: node.querySelectorAll(".finger"),
+      focus: { x: 0, y: 0 },
+      applyText() {
+        q(".demo-title").textContent = t(spec.title);
+        q(".demo-sub").textContent = t(spec.sub);
+        q(".readout-label").textContent = t(spec.read);
+        q(".a-title").textContent = t("aTitle");
+        q(".a-meta").textContent = t("aMeta");
+        q(".a-p1").textContent = t("aP1");
+        q(".a-p2").textContent = t("aP2");
+        q(".a-p3").textContent = t("aP3");
+        node.querySelectorAll("[data-note]").forEach((el) => { el.textContent = t(el.dataset.note); });
+      }
+    };
+    return panel;
+  });
+
+  // The pointer rests on the moon. Measured at zoom 1 so every panel shares the same spot.
+  function layoutPanels() {
+    panels.forEach((p) => {
+      p.page.style.transform = "";
+      p.page.style.zoom = "";
+      const vp = p.viewport.getBoundingClientRect();
+      const m = p.moon.getBoundingClientRect();
+      p.focus.x = m.left + m.width * 0.5 - vp.left;
+      p.focus.y = m.top + m.height * 0.55 - vp.top;
+      p.cursor.style.left = `${p.focus.x}px`;
+      p.cursor.style.top = `${p.focus.y}px`;
+      p.page.style.transformOrigin = `${p.focus.x}px ${p.focus.y}px`;
+    });
+  }
+
+  /* ----------------------------------------------------------------
+     Timeline (seconds), shared by all three panels
+     ---------------------------------------------------------------- */
+  const CYCLE = 10.4;
+  const KEY_DOWN = [[0.6, 4.3], [5.0, 8.9]];
+  const IN_START = 0.8, OUT_START = 5.2, SPAN = 3.0;
+  const OURS_NOTCHES = 10;                  // e^(10 * ln2/10) = 2x, like Sensitivity ≈ 7.2% per notch
+  const CTRL_LEVELS = [1, 1.1, 1.25, 1.5, 1.75, 2];   // Chrome's zoom steps
+
+  const easeInOut = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+  const clamp01 = (x) => Math.min(1, Math.max(0, x));
+  const keyDownAt = (s) => KEY_DOWN.some(([a, b]) => s >= a && s < b);
+
+  // Wheel notches done by time s (0..N), for a gesture of N notches in SPAN seconds.
+  function notchesAt(s, n) {
+    const step = SPAN / n;
+    const inDone = s < IN_START ? 0 : Math.min(n, Math.floor((s - IN_START) / step) + 1);
+    const outDone = s < OUT_START ? 0 : Math.min(n, Math.floor((s - OUT_START) / step) + 1);
+    return inDone - outDone;
+  }
+  const totalNotches = (s, n) => (s < IN_START ? 0 : Math.min(n, Math.floor((s - IN_START) / (SPAN / n)) + 1))
+                                 + (s < OUT_START ? 0 : Math.min(n, Math.floor((s - OUT_START) / (SPAN / n)) + 1));
+
+  function touchScale(s) {
+    if (s < IN_START) return 1;
+    if (s < IN_START + SPAN) return 1 + easeInOut((s - IN_START) / SPAN);
+    if (s < OUT_START) return 2;
+    if (s < OUT_START + SPAN) return 2 - easeInOut((s - OUT_START) / SPAN);
+    return 1;
+  }
+
+  // Continuous Pinch: each notch moves the target; the shown scale eases toward it
+  // (like the app's adaptive smoothing), so the result is continuous, never stepped.
+  let oursLog = 0, lastS = 0;
+  function oursScale(s, dt) {
+    const target = (Math.LN2 / OURS_NOTCHES) * notchesAt(s, OURS_NOTCHES);
+    if (s < lastS) oursLog = 0;                       // loop restarted
+    lastS = s;
+    const k = dt <= 0 ? 1 : 1 - Math.exp(-dt * 11);
+    oursLog += (target - oursLog) * k;
+    return Math.exp(oursLog);
+  }
+
+  const ctrlZoom = (s) => CTRL_LEVELS[notchesAt(s, CTRL_LEVELS.length - 1)];
+
+  /* ----------------------------------------------------------------
+     Render
+     ---------------------------------------------------------------- */
+  let clock = 2.2;              // start a little into the cycle so motion is visible at once
+  let playing = true;
+  let lastFrame = 0;
+  let lastCtrlLevel = 1, pillUntil = 0;
+
+  function fingerSpread(pad, scale, on) {
+    pad.classList.toggle("on", on);
+    const w = pad.clientWidth;
+    const half = (w * 0.16) * scale;                  // distance grows with the zoom factor
+    pad.querySelectorAll(".finger").forEach((f, i) => {
+      f.style.left = `${w / 2 + (i === 0 ? -half : half)}px`;
+    });
+  }
+
+  function render(dt = 0) {
+    const s = clock % CYCLE;
+    const down = keyDownAt(s);
+    const zooming = (s >= IN_START - 0.1 && s < IN_START + SPAN + 0.3) || (s >= OUT_START - 0.1 && s < OUT_START + SPAN + 0.3);
+
+    // 1. Touchpad
+    const [touch, ours, ctrl] = panels;
+    const ts = touchScale(s);
+    touch.page.style.transform = `scale(${ts})`;
+    touch.readout.textContent = `×${ts.toFixed(2)}`;
+    fingerSpread(touch.pad, ts, zooming);
+
+    // 2. Continuous Pinch
+    const os = oursScale(s, dt);
+    ours.page.style.transform = `scale(${os})`;
+    ours.readout.textContent = `×${os.toFixed(2)}`;
+    ours.key.classList.toggle("down", down);
+    ours.ticks.style.transform = `translateY(${(totalNotches(s, OURS_NOTCHES) % 6) * 4}px)`;
+    ours.mouse.classList.toggle("spin", zooming);
+    fingerSpread(ours.pad, os, down && Math.abs(os - 1) > 0.002);
+
+    // 3. Ctrl + wheel: real reflow via CSS zoom, anchored top-left, no animation between steps
+    const cz = ctrlZoom(s);
+    if (cz !== lastCtrlLevel) { pillUntil = clock + 1.2; lastCtrlLevel = cz; }
+    ctrl.page.style.zoom = cz === 1 ? "" : String(cz);
+    ctrl.readout.textContent = `${Math.round(cz * 100)}%`;
+    ctrl.key.classList.toggle("down", down);
+    ctrl.ticks.style.transform = `translateY(${(totalNotches(s, CTRL_LEVELS.length - 1) % 6) * 4}px)`;
+    ctrl.pillText.textContent = `${Math.round(cz * 100)}%`;
+    ctrl.pill.classList.toggle("on", cz !== 1);
+  }
+
+  function frame(now) {
+    const dt = lastFrame ? Math.min(0.05, (now - lastFrame) / 1000) : 0;
+    lastFrame = now;
+    if (playing && visible) {
+      clock += dt;
+      render(dt);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // Pause while off-screen.
+  let visible = true;
+  new IntersectionObserver((entries) => { visible = entries[0].isIntersecting; }).observe(host);
+
+  const playBtn = document.getElementById("playToggle");
+  function setPlaying(on) {
+    playing = on;
+    playBtn.textContent = t(on ? "pause" : "play");
+  }
+  playBtn.addEventListener("click", () => setPlaying(!playing));
+
+  // Reduced motion: show the fully zoomed state, still, until the visitor presses play.
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  addEventListener("resize", () => { layoutPanels(); render(); });
+
+  // Start. "?t=4.2" freezes the demo at that moment (for screenshots and reviews).
+  const freezeAt = new URLSearchParams(location.search).get("t");
+  applyLang(readStoredLang());
+  if (freezeAt !== null && !Number.isNaN(Number(freezeAt))) {
+    clock = Number(freezeAt);
+    oursLog = 0; lastS = 0;
+    // run the easing up to that moment so the frozen frame is exact
+    for (let s = 0; s <= clock; s += 1 / 120) { oursScale(s % CYCLE, 1 / 120); }
+    setPlaying(false);
+    render();
+  } else if (reduce) {
+    clock = IN_START + SPAN + 0.5;
+    oursLog = Math.LN2;
+    setPlaying(false);
+    render();
+  } else {
+    // settle the eased value at the starting point
+    oursLog = (Math.LN2 / OURS_NOTCHES) * notchesAt(clock % CYCLE, OURS_NOTCHES);
+    lastS = clock % CYCLE;
+    render();
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
