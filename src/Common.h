@@ -67,6 +67,12 @@ constexpr double AdaptiveFullDiff = 900.0;
 constexpr double MaxFingerSpeed = 22000.0;
 constexpr double ResetFingerSpeed = 26000.0;
 
+// Set POINTER_FLAG_DOWN / UPDATE / UP on injected touchpad frames, as
+// documented for InjectSyntheticPointerInput. v1.0.x injected frames
+// without these transition flags. If pinch zoom stops working on some
+// Windows build, set this to false to restore the v1.0.x behavior.
+constexpr bool UsePointerTransitionFlags = true;
+
 constexpr int ExitHotkeyId = 3001;
 
 // Tray

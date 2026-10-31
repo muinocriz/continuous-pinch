@@ -27,10 +27,8 @@ using PFN_CreateSyntheticPointerDevice2 =
 static PFN_CreateSyntheticPointerDevice2 g_CreateSyntheticPointerDevice2 = nullptr;
 static HSYNTHETICPOINTERDEVICE g_touchpad = nullptr;
 
-// v1.0.x timing: a private counter starting at 1 that advances by the
-// nominal frame interval on every injected frame. Reset when the device is
-// (re)created, as v1.0.x reset it together with the pinch state.
-static DWORD g_syntheticTime = 1;
+// Timestamp of the last injected frame (GetTickCount milliseconds).
+static DWORD g_lastFrameTime = 0;
 
 
 // ============================================================================
@@ -80,8 +78,6 @@ bool CreateTouchpadDevice()
 
     SetLastError(ERROR_SUCCESS);
 
-    g_syntheticTime = 1;
-
     g_touchpad = g_CreateSyntheticPointerDevice2(&params);
 
     return g_touchpad != nullptr;
@@ -109,13 +105,48 @@ bool HasTouchpadDevice()
 // Frame injection
 // ============================================================================
 
-// v1.0.x flags: contacts down => INRANGE | INCONTACT | CONFIDENCE,
-// lifted => CONFIDENCE only. No DOWN / UPDATE / UP transition flags.
+// Real time in milliseconds, strictly increasing across frames.
+//
+// v1.0.x advanced a private counter by a fixed 8 ms per injected frame, so
+// timestamps ran slower than real time (actual frame spacing was 10-16 ms)
+// and did not advance at all while a gesture was paused. The gesture
+// recognizer derives velocity from these timestamps.
+static DWORD NextFrameTime()
+{
+    DWORD now = GetTickCount();
+
+    if (static_cast<LONG>(now - g_lastFrameTime) <= 0)
+        now = g_lastFrameTime + 1;
+
+    g_lastFrameTime = now;
+
+    return now;
+}
+
+
 static POINTER_FLAGS FlagsForFrame(TouchpadFrame frame)
 {
-    return frame == TouchpadFrame::Up
-               ? POINTER_FLAG_CONFIDENCE
-               : (POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT | POINTER_FLAG_CONFIDENCE);
+    constexpr POINTER_FLAGS contact =
+        POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT | POINTER_FLAG_CONFIDENCE;
+
+    if (!Const::UsePointerTransitionFlags)
+    {
+        // v1.0.x behavior: no DOWN / UPDATE / UP transition flags.
+        return frame == TouchpadFrame::Up ? POINTER_FLAG_CONFIDENCE : contact;
+    }
+
+    switch (frame)
+    {
+        case TouchpadFrame::Down:
+            return POINTER_FLAG_DOWN | contact;
+
+        case TouchpadFrame::Update:
+            return POINTER_FLAG_UPDATE | contact;
+
+        case TouchpadFrame::Up:
+        default:
+            return POINTER_FLAG_UP | POINTER_FLAG_CONFIDENCE;
+    }
 }
 
 
@@ -128,7 +159,7 @@ bool InjectTouchpadFrame(const POINT& p1, const POINT& p2, TouchpadFrame frame)
     const POINT points[2] = {p1, p2};
 
     const POINTER_FLAGS flags = FlagsForFrame(frame);
-    const DWORD time = g_syntheticTime;
+    const DWORD time = NextFrameTime();
 
     for (UINT32 i = 0; i < 2; ++i)
     {
@@ -143,10 +174,5 @@ bool InjectTouchpadFrame(const POINT& p1, const POINT& p2, TouchpadFrame frame)
         pointerInfo.dwTime = time;
     }
 
-    if (!InjectSyntheticPointerInput(g_touchpad, infos, 2))
-        return false;
-
-    g_syntheticTime += Const::AnimationIntervalMs;
-
-    return true;
+    return InjectSyntheticPointerInput(g_touchpad, infos, 2) != FALSE;
 }
