@@ -27,7 +27,13 @@
 namespace Const
 {
 
-constexpr wchar_t AppName[] = L"Continuous Pinch V3";
+// Display name (window titles, tray tooltip, message boxes).
+constexpr wchar_t AppName[] = L"Continuous Pinch";
+constexpr wchar_t AppVersion[] = L"" APP_VERSION_STR;
+
+// Internal identifiers keep the historical "V3" development name on purpose:
+// renaming them would orphan existing INI files and Run entries and break
+// single-instance detection against older builds. Users never see them.
 constexpr wchar_t ConfigFileName[] = L"continuous_pinch_v3.ini";
 constexpr wchar_t AppDataFolderName[] = L"ContinuousPinch";
 constexpr wchar_t RunRegistryValue[] = L"ContinuousPinchV3";

@@ -504,7 +504,7 @@ void TickPinch(SmoothingCurve curve, bool zoomModifierHeld, bool targetAllowed)
     {
         g_pinch.appliedLogZoom = g_pinch.targetLogZoom;
 
-        // V3.1 slow-wheel behavior:
+        // Slow-wheel behavior:
         //
         // While the configured zoom modifier is still held, keep the two
         // synthetic touchpad contacts DOWN even if there has been no wheel

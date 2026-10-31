@@ -2,6 +2,13 @@
 
 // Resource and control IDs, shared by app.rc and the C++ sources.
 
+// Application version: used by the VERSIONINFO resource (app.rc) and shown
+// in the tray tooltip. Update together with app.manifest and CHANGELOG.md.
+#define APP_VERSION_MAJOR 1
+#define APP_VERSION_MINOR 3
+#define APP_VERSION_PATCH 0
+#define APP_VERSION_STR "1.3.0"
+
 #define IDI_APP_ICON 101
 
 #define IDD_SETTINGS 200

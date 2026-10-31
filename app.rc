@@ -12,6 +12,37 @@ IDI_APP_ICON ICON "app.ico"
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "app.manifest"
 
 // ----------------------------------------------------------------------------
+// Version information (Explorer file properties, Task Manager description)
+// ----------------------------------------------------------------------------
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     APP_VERSION_MAJOR, APP_VERSION_MINOR, APP_VERSION_PATCH, 0
+PRODUCTVERSION  APP_VERSION_MAJOR, APP_VERSION_MINOR, APP_VERSION_PATCH, 0
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription", "Continuous Pinch"
+            VALUE "FileVersion", APP_VERSION_STR
+            VALUE "InternalName", "ContinuousPinch"
+            VALUE "OriginalFilename", "ContinuousPinch.exe"
+            VALUE "ProductName", "Continuous Pinch"
+            VALUE "ProductVersion", APP_VERSION_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END
+
+// ----------------------------------------------------------------------------
 // Settings dialog
 //
 // Laid out in dialog units, so it scales with the font and the monitor DPI.
