@@ -25,7 +25,7 @@ cl /nologo /std:c++17 /EHsc /O2 /utf-8 /W4 ^
    build\app.res ^
    user32.lib comctl32.lib winmm.lib shell32.lib advapi32.lib gdi32.lib ^
    /Fe:ContinuousPinch.exe ^
-   /link /SUBSYSTEM:WINDOWS
+   /link /SUBSYSTEM:WINDOWS /MANIFEST:NO
 
 if errorlevel 1 (
     echo.

@@ -8,6 +8,29 @@ MAJOR.MINOR.PATCH
 
 ---
 
+## v1.2.0
+
+Settings and configuration update.
+
+### Changed
+
+- 设置窗口改为对话框资源模板（`app.rc` 中的 `IDD_SETTINGS`），分为“常规 / 缩放 / 按键 / 应用白名单”四组：
+  - 使用系统 UI 字体与 Common Controls v6 样式；
+  - 布局以对话框单位定义，随字体和显示器 DPI 自动缩放，在不同缩放比例的显示器之间移动时也会重新缩放；
+  - 支持 `Tab` 切换控件、`Enter` 确定、`Esc` 取消；
+  - 所有文字随界面语言切换，不再使用“中文 / English”混排标签。
+- 按钮改为“确定 / 取消 / 应用 / 恢复默认”。“取消”、`Esc` 和右上角 X 都会放弃未应用的修改。
+- 新增 `app.manifest`（Common Controls v6、Per-Monitor V2 DPI、asInvoker），由 `app.rc` 嵌入；`build.bat` 链接时加 `/MANIFEST:NO`。
+- 配置文件位置：EXE 目录不可写时（例如放在 `Program Files`）改存到 `%APPDATA%\ContinuousPinch\`；已有的配置文件位置保持不变。设置窗口中显示配置文件路径，并可在资源管理器中定位。
+- 配置文件改为 UTF-16 编码，白名单可以包含中文等非 ASCII 进程名；v1.0.x 的 ANSI 配置文件（以及手动保存成 UTF-8 的配置文件）会自动转换。
+
+### Fixed
+
+- 软复位与硬复位使用相同修饰键时，点“应用”会给出提示，而不是让硬复位悄悄覆盖软复位。
+- “开机启动”只在启动项指向当前 EXE 时显示为已勾选；启动项指向其他位置（例如移动过 EXE）时，设置窗口会说明情况，勾选后改为指向当前程序。保存设置时不再误删属于其他副本的启动项。
+
+---
+
 ## v1.1.0
 
 Input engine update.

@@ -72,7 +72,7 @@ static void ToggleEnabled()
     // silently undo the tray toggle.
     if (g_settingsWindow)
     {
-        SendMessageW(GetDlgItem(g_settingsWindow, Const::IDC_ENABLED), BM_SETCHECK,
+        SendMessageW(GetDlgItem(g_settingsWindow, IDC_ENABLED), BM_SETCHECK,
                      enabled ? BST_CHECKED : BST_UNCHECKED, 0);
     }
 }
@@ -95,7 +95,7 @@ static void ToggleStartup()
 
     if (g_settingsWindow)
     {
-        SendMessageW(GetDlgItem(g_settingsWindow, Const::IDC_STARTUP), BM_SETCHECK,
+        SendMessageW(GetDlgItem(g_settingsWindow, IDC_STARTUP), BM_SETCHECK,
                      startup ? BST_CHECKED : BST_UNCHECKED, 0);
     }
 }
@@ -231,7 +231,8 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 {
-    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    // DPI awareness (Per-Monitor V2) and Common Controls v6 are declared in
+    // app.manifest, which is embedded by app.rc.
 
     // Single instance: a second launch opens the running instance's Settings
     // instead of creating a second hook, touchpad and tray icon.
@@ -376,6 +377,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
     while (GetMessageW(&msg, nullptr, 0, 0) > 0)
     {
+        if (HandleSettingsDialogMessage(msg))
+            continue;
+
         TranslateMessage(&msg);
 
         DispatchMessageW(&msg);

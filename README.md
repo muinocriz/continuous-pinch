@@ -261,14 +261,14 @@ continuous-pinch/
 ├─ src/
 │  ├─ Main.cpp               # 入口、主窗口消息、托盘命令
 │  ├─ Common.h               # 公共头文件、常量、配置类型
-│  ├─ Config.h/.cpp          # 配置状态、INI 读写、开机启动、本地化
+│  ├─ Config.h/.cpp          # 配置状态、INI 位置与读写、开机启动、本地化
 │  ├─ InputThread.h/.cpp     # 输入线程：消息循环、按需高精度帧定时器、配置快照
 │  ├─ Pinch.h/.cpp           # 捏合手势状态机：滚轮、平滑、分段、复位
 │  ├─ Touchpad.h/.cpp        # Windows 11 Synthetic Precision Touchpad 设备与帧注入
 │  ├─ Target.h/.cpp          # 目标应用（白名单）判定与缓存
 │  ├─ MouseHook.h/.cpp       # WH_MOUSE_LL 低级鼠标钩子（运行在输入线程）
 │  ├─ Tray.h/.cpp            # 托盘图标与菜单
-│  ├─ SettingsWindow.h/.cpp  # 设置窗口、退出热键
+│  ├─ SettingsWindow.h/.cpp  # 设置对话框（模板在 app.rc）、退出热键
 │  ├─ Util.h/.cpp            # 时间、字符串、路径工具
 │  └─ App.h                  # 全局窗口句柄
 ├─ assets/
@@ -281,8 +281,9 @@ continuous-pinch/
 │     ├─ settings-en.png
 │     └─ tray-menu.png
 ├─ app.ico
-├─ app.rc
-├─ resource.h
+├─ app.rc                   # 图标、manifest、设置对话框模板
+├─ app.manifest             # Common Controls v6、Per-Monitor V2 DPI
+├─ resource.h               # 资源与控件 ID
 ├─ build.bat
 ├─ README.md
 ├─ CHANGELOG.md
@@ -343,7 +344,16 @@ LINK : fatal error LNK1104: 无法打开文件“ContinuousPinch.exe”
 
 ## 配置文件
 
-程序运行后会在 EXE 同目录保存 INI 配置。
+配置保存在 `continuous_pinch_v3.ini` 中，位置按以下顺序确定：
+
+1. EXE 同目录下已有配置文件 → 使用它（便携方式，也兼容 v1.0.x）
+2. `%APPDATA%\ContinuousPinch\` 下已有配置文件 → 使用它
+3. EXE 所在目录可写 → 保存在 EXE 同目录
+4. 否则（例如 EXE 放在 `Program Files` 中）→ 保存到 `%APPDATA%\ContinuousPinch\`
+
+设置窗口底部会显示当前使用的配置文件路径，点“打开位置”可以在资源管理器中定位到它。
+
+配置文件使用 UTF-16 编码，白名单中可以包含中文等非 ASCII 进程名。v1.0.x 的 ANSI 配置文件会在首次启动时自动转换。
 
 配置内容包括：
 

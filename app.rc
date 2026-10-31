@@ -1,3 +1,69 @@
+#include <windows.h>
+#include <commctrl.h>
+
 #include "resource.h"
 
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
 IDI_APP_ICON ICON "app.ico"
+
+// Application manifest: Common Controls v6, Per-Monitor V2 DPI awareness.
+// build.bat links with /MANIFEST:NO so the linker does not add a second one.
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "app.manifest"
+
+// ----------------------------------------------------------------------------
+// Settings dialog
+//
+// Laid out in dialog units, so it scales with the font and the monitor DPI.
+// All visible text is set at runtime by ApplySettingsLanguage(); the English
+// strings below are only placeholders for resource editors.
+// ----------------------------------------------------------------------------
+
+IDD_SETTINGS DIALOGEX 0, 0, 300, 325
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "Continuous Pinch Settings"
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "General", IDC_GRP_GENERAL, 7, 4, 286, 50
+    AUTOCHECKBOX    "Enable pinch zoom", IDC_ENABLED, 14, 17, 140, 10, WS_TABSTOP | WS_GROUP
+    RTEXT           "Language", IDC_LBL_LANGUAGE, 158, 18, 52, 8
+    COMBOBOX        IDC_LANGUAGE, 214, 16, 72, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    AUTOCHECKBOX    "Start with Windows", IDC_STARTUP, 14, 31, 272, 10, WS_TABSTOP
+    LTEXT           "", IDC_STARTUP_HINT, 26, 42, 260, 8, SS_NOPREFIX
+
+    GROUPBOX        "Zoom", IDC_GRP_ZOOM, 7, 58, 286, 66
+    LTEXT           "Sensitivity", IDC_LBL_SENS, 14, 72, 62, 8
+    CONTROL         "", IDC_SENS_SLIDER, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 76, 68, 152, 15
+    LTEXT           "", IDC_SENS_VALUE, 230, 72, 58, 8, SS_NOPREFIX
+    LTEXT           "Smoothing", IDC_LBL_CURVE, 14, 90, 62, 8
+    COMBOBOX        IDC_CURVE, 78, 88, 208, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Target", IDC_LBL_TARGET, 14, 107, 62, 8
+    COMBOBOX        IDC_TARGET_MODE, 78, 105, 208, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+
+    GROUPBOX        "Keys", IDC_GRP_KEYS, 7, 128, 286, 82
+    LTEXT           "Zoom", IDC_LBL_ZOOM_MOD, 14, 142, 62, 8
+    COMBOBOX        IDC_ZOOM_MOD, 78, 140, 100, 100, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "+ wheel", IDC_LBL_ZOOM_HINT, 184, 142, 102, 8, SS_NOPREFIX
+    LTEXT           "Soft reset", IDC_LBL_RESET_MOD, 14, 159, 62, 8
+    COMBOBOX        IDC_RESET_MOD, 78, 157, 100, 100, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "+ middle click", IDC_LBL_RESET_HINT, 184, 159, 102, 8, SS_NOPREFIX
+    LTEXT           "Hard reset", IDC_LBL_HARDRESET_MOD, 14, 176, 62, 8
+    COMBOBOX        IDC_HARDRESET_MOD, 78, 174, 100, 100, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "+ middle click", IDC_LBL_HARDRESET_HINT, 184, 176, 102, 8, SS_NOPREFIX
+    LTEXT           "Exit hotkey", IDC_LBL_EXIT, 14, 193, 62, 8
+    CONTROL         "", IDC_EXIT_HOTKEY, "msctls_hotkey32", WS_BORDER | WS_TABSTOP, 78, 191, 100, 12
+
+    GROUPBOX        "Applications", IDC_GRP_APPS, 7, 214, 286, 66
+    LTEXT           "One executable name per line", IDC_LBL_WHITELIST, 14, 226, 272, 8
+    EDITTEXT        IDC_WHITELIST, 14, 237, 272, 37, ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_TABSTOP
+
+    LTEXT           "Config file:", IDC_LBL_CONFIG, 7, 288, 44, 8
+    LTEXT           "", IDC_CONFIG_PATH, 52, 288, 182, 8, SS_PATHELLIPSIS | SS_NOPREFIX
+    PUSHBUTTON      "Open folder", IDC_OPEN_CONFIG_DIR, 238, 285, 55, 14, WS_TABSTOP
+
+    PUSHBUTTON      "Defaults", IDC_DEFAULTS, 7, 304, 58, 14, WS_TABSTOP
+    DEFPUSHBUTTON   "OK", IDOK, 125, 304, 52, 14, WS_TABSTOP
+    PUSHBUTTON      "Cancel", IDCANCEL, 183, 304, 52, 14, WS_TABSTOP
+    PUSHBUTTON      "Apply", IDC_APPLY, 241, 304, 52, 14, WS_TABSTOP
+END

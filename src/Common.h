@@ -107,22 +107,6 @@ constexpr UINT IDM_TRAY_HARDRESET = 4004;
 constexpr UINT IDM_TRAY_STARTUP = 4005;
 constexpr UINT IDM_TRAY_EXIT = 4006;
 
-// Settings controls
-constexpr int IDC_SENS_SLIDER = 5001;
-constexpr int IDC_SENS_VALUE = 5002;
-constexpr int IDC_CURVE = 5003;
-constexpr int IDC_WHITELIST = 5004;
-constexpr int IDC_ZOOM_MOD = 5005;
-constexpr int IDC_RESET_MOD = 5006;
-constexpr int IDC_HARDRESET_MOD = 5007;
-constexpr int IDC_EXIT_HOTKEY = 5008;
-constexpr int IDC_STARTUP = 5009;
-constexpr int IDC_ENABLED = 5010;
-constexpr int IDC_APPLY = 5011;
-constexpr int IDC_CLOSE = 5012;
-constexpr int IDC_DEFAULTS = 5013;
-constexpr int IDC_LANGUAGE = 5014;
-constexpr int IDC_TARGET_MODE = 5015;
 
 }  // namespace Const
 
