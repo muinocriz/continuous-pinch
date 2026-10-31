@@ -1,122 +1,144 @@
-# Continuous Pinch v1.0.0
+# Continuous Pinch v1.0.1
 
-Continuous Pinch 的第一个公开版本。
-
-这是一个面向 Windows 11 的鼠标滚轮捏合缩放工具。
-
-它不会使用传统的：
-
-```text
-Ctrl + Wheel
-```
-
-而是将鼠标滚轮转换为 Windows 11 Synthetic Precision Touchpad 的 pinch gesture。
+`v1.0.1` 是一次以“无需先点击浏览器即可缩放”为核心的体验更新，同时修复了自定义应用图标在新版本中的资源绑定问题。
 
 ---
 
-## Highlights
+## 本次更新重点
 
-### 真正的 Synthetic Precision Touchpad
+### 鼠标悬停即可缩放
 
-Continuous Pinch 使用 Windows 11：
+在 `v1.0.0` 中，Continuous Pinch 会根据当前前台窗口判断是否允许缩放。
 
-```text
-PT_TOUCHPAD
-```
+这意味着即使鼠标已经移动到 Chrome / Edge 上，如果浏览器没有焦点，仍然需要先点击浏览器。
 
-生成虚拟触控板输入。
-
-输入链路：
+`v1.0.1` 默认改为：
 
 ```text
-Mouse Wheel
-→ Continuous Pinch
-→ Synthetic Precision Touchpad
-→ Pinch Gesture
-→ Browser Viewport Zoom
+鼠标移动到浏览器
+→ 按住 Alt
+→ 滚动滚轮
+→ 直接触发 pinch zoom
 ```
+
+无需先点击浏览器。
 
 ---
 
-### 100% 最低基准
+### 新增目标判定模式
 
-默认只允许：
-
-```text
-100% → 放大
-```
-
-缩小时：
+设置界面新增：
 
 ```text
-放大状态 → 100%
+目标判定 / Target
 ```
 
-不会继续缩到工具逻辑基准以下。
+提供两种模式：
+
+```text
+鼠标悬停窗口（推荐）
+当前前台窗口
+```
+
+默认：
+
+```text
+鼠标悬停窗口
+```
+
+如果更喜欢旧版行为，可以切换回“当前前台窗口”。
 
 ---
 
-### 慢速滚轮支持
+### 悬停模式的判定方式
 
-按住缩放修饰键时，即使你：
+悬停模式会根据鼠标指针下的顶层窗口找到对应进程：
 
 ```text
-滚一格
-等一秒
-再滚一格
+GetCursorPos
+→ WindowFromPoint
+→ GetAncestor(GA_ROOT)
+→ GetWindowThreadProcessId
+→ 获取 EXE 名称
+→ 应用白名单
 ```
 
-仍然属于同一个连续 pinch session。
+默认白名单仍然是：
+
+```text
+chrome.exe
+msedge.exe
+```
+
+因此即使其它程序当前拥有键盘焦点，只要鼠标悬停在白名单浏览器上，Continuous Pinch 就可以响应。
 
 ---
 
-### 安全复位
+### 性能处理
 
-Soft Reset：
+进程查询不会放在 `WH_MOUSE_LL` 低级鼠标 Hook 中。
 
-```text
-Alt + 中键
-```
-
-Hard Reset：
-
-```text
-Ctrl + Alt + 中键
-```
-
-Hard Reset 会销毁并重新创建 Synthetic Touchpad Device。
+程序会缓存鼠标下的根窗口，只有目标根窗口发生变化时才重新查询进程名和白名单状态，从而避免高频 `OpenProcess` 调用。
 
 ---
 
-### 可配置界面
+### 修复应用 Logo
 
-包括：
+在加入悬停目标功能后的开发版本中，自定义图标资源绑定一度被遗漏。
 
-- 中文 / English
-- 默认中文
-- 系统托盘
-- 灵敏度
-- smoothing 曲线
-- 热键
-- 应用白名单
-- 开机启动
+`v1.0.1` 已恢复：
+
+- 托盘图标使用 `IDI_APP_ICON`
+- 设置窗口 `hIcon`
+- 设置窗口 `hIconSm`
+- Windows Resource 编译流程
+
+项目仍使用：
+
+```text
+app.ico
+app.rc
+resource.h
+```
+
+并通过 `build.bat` 将图标编译进 `ContinuousPinch.exe`。
 
 ---
 
-## Default Controls
+## 配置变化
+
+新增：
+
+```ini
+[Applications]
+TargetMode=0
+```
+
+取值：
+
+```text
+0 = 鼠标悬停窗口（默认）
+1 = 当前前台窗口
+```
+
+已有用户如果配置文件中没有 `TargetMode`，程序会自动使用默认值 `0`，无需手动修改配置文件。
+
+---
+
+## 默认操作
 
 ```text
 Alt + Wheel Up
     Zoom in
 
 Alt + Wheel Down
-    Zoom out to the logical 100% baseline
+    Zoom out, never below the tool's logical 100% baseline
 
 Alt + Middle Click
-    Soft reset
+    Soft reset to baseline
 
 Ctrl + Alt + Middle Click
-    Hard reset
+    Hard reset synthetic touchpad
 
 Ctrl + Alt + Shift + F12
     Exit
@@ -124,64 +146,34 @@ Ctrl + Alt + Shift + F12
 
 ---
 
-## Default Application Whitelist
+## 升级建议
+
+从 `v1.0.0` 升级时，可以直接替换 EXE。
+
+如果你希望继续保持旧版“必须是前台应用才能响应”的行为，请在设置中将：
 
 ```text
-chrome.exe
-msedge.exe
+目标判定 / Target
+```
+
+切换为：
+
+```text
+当前前台窗口
 ```
 
 ---
 
-## Requirements
+## 特别鸣谢 / Special Thanks
 
-- Windows 11
-- Microsoft Edge or Google Chrome recommended
-
-如果自行编译：
-
-- Visual Studio 2022
-- MSVC
-- Windows SDK
-
----
-
-## Build
-
-使用：
-
-```text
-x64 Native Tools Command Prompt for VS 2022
-```
-
-运行：
-
-```bat
-build.bat
-```
-
-即可生成：
-
-```text
-ContinuousPinch.exe
-```
-
----
-
-## Known Limitations
-
-Continuous Pinch 的 100% 是工具内部维护的逻辑基准。
-
-如果在程序运行时使用其它设备或方式修改浏览器 viewport pinch scale，工具无法自动读取并同步该状态。
-
-普通鼠标滚轮也是离散输入，因此无法完全复制真实触控板的连续采样手感。
+特别感谢 GitHub 用户 [@zhoulin12138](https://github.com/zhoulin12138) 对 Continuous Pinch 的关注与支持。
 
 ---
 
 ## Version
 
 ```text
-v1.0.0
+v1.0.1
 ```
 
-这是首个 GitHub 正式发布版本。
+这是 Continuous Pinch 的第一个补丁版本更新。
