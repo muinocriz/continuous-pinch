@@ -9,6 +9,7 @@
 #include "Util.h"
 
 #include <future>
+#include <memory>
 
 #ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
 #define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
@@ -286,7 +287,11 @@ static void RunInputLoop()
 }
 
 
-static void InputThreadMain(HINSTANCE hInstance, std::promise<InputStartError>* ready)
+// `ready` is shared with StartInputThread() so neither side can outlive it:
+// the UI thread may return from StartInputThread() the moment the value is
+// set, while set_value() is still finishing on this thread.
+static void InputThreadMain(HINSTANCE hInstance,
+                            std::shared_ptr<std::promise<InputStartError>> ready)
 {
     // Create this thread's message queue before anyone posts to it.
     MSG msg{};
@@ -329,7 +334,8 @@ static void InputThreadMain(HINSTANCE hInstance, std::promise<InputStartError>* 
 
     g_inputThreadId.store(GetCurrentThreadId());
 
-    ready->set_value(error);  // `ready` must not be used after this point
+    ready->set_value(error);
+    ready.reset();
 
     RunInputLoop();
 
@@ -347,10 +353,10 @@ static void InputThreadMain(HINSTANCE hInstance, std::promise<InputStartError>* 
 
 bool StartInputThread(HINSTANCE hInstance, InputStartError& error)
 {
-    std::promise<InputStartError> ready;
-    std::future<InputStartError> result = ready.get_future();
+    auto ready = std::make_shared<std::promise<InputStartError>>();
+    std::future<InputStartError> result = ready->get_future();
 
-    g_inputThread = std::thread(InputThreadMain, hInstance, &ready);
+    g_inputThread = std::thread(InputThreadMain, hInstance, ready);
 
     error = result.get();
 
