@@ -1,0 +1,15 @@
+# Build output
+build/
+*.obj
+*.res
+*.exe
+*.pdb
+*.ilk
+
+# Runtime configuration written beside the EXE
+continuous_pinch_v3.ini
+
+# Editors / IDEs
+.vs/
+.vscode/
+*.user

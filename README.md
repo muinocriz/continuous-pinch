@@ -259,7 +259,17 @@ Adaptive
 ```text
 continuous-pinch/
 ├─ src/
-│  └─ ContinuousPinch.cpp
+│  ├─ Main.cpp               # 入口、主窗口消息、托盘命令
+│  ├─ Common.h               # 公共头文件、常量、配置类型
+│  ├─ Config.h/.cpp          # 配置状态、INI 读写、开机启动、本地化
+│  ├─ Pinch.h/.cpp           # 捏合手势状态机：滚轮、平滑、分段、复位
+│  ├─ Touchpad.h/.cpp        # Windows 11 Synthetic Precision Touchpad 设备
+│  ├─ Target.h/.cpp          # 目标应用（白名单）判定
+│  ├─ MouseHook.h/.cpp       # WH_MOUSE_LL 低级鼠标钩子
+│  ├─ Tray.h/.cpp            # 托盘图标与菜单
+│  ├─ SettingsWindow.h/.cpp  # 设置窗口、退出热键
+│  ├─ Util.h/.cpp            # 时间、字符串、路径工具
+│  └─ App.h                  # 全局窗口句柄
 ├─ assets/
 │  ├─ app-logo.png
 │  ├─ gifs/
@@ -276,6 +286,8 @@ continuous-pinch/
 ├─ README.md
 ├─ CHANGELOG.md
 ├─ RELEASE_NOTES.md
+├─ .clang-format
+├─ .gitattributes
 └─ .gitignore
 ```
 
@@ -295,21 +307,27 @@ x64 Native Tools Command Prompt for VS 2022
 build.bat
 ```
 
-`build.bat` 会先编译 Windows 图标资源，再编译 C++：
+`build.bat` 会先编译 Windows 图标资源，再编译 `src` 下的全部源文件（中间文件输出到 `build\`）：
 
 ```bat
-rc /nologo app.rc
+rc /nologo /fo build\app.res app.rc
 
-cl /nologo /std:c++17 /EHsc /O2 /utf-8 ^
-src\ContinuousPinch.cpp ^
-app.res ^
-user32.lib ^
-comctl32.lib ^
-winmm.lib ^
-shell32.lib ^
-advapi32.lib ^
-/Fe:ContinuousPinch.exe ^
-/link /SUBSYSTEM:WINDOWS
+cl /nologo /std:c++17 /EHsc /O2 /utf-8 /W4 ^
+   /DUNICODE /D_UNICODE ^
+   /Fobuild\ ^
+   src\*.cpp ^
+   build\app.res ^
+   user32.lib comctl32.lib winmm.lib shell32.lib advapi32.lib gdi32.lib ^
+   /Fe:ContinuousPinch.exe ^
+   /link /SUBSYSTEM:WINDOWS
+```
+
+在 CI 等非交互环境中可以使用 `build.bat nopause` 跳过结尾的暂停。
+
+代码格式由仓库根目录的 `.clang-format` 定义，修改代码后可执行：
+
+```bat
+clang-format -i src\*.cpp src\*.h
 ```
 
 如果出现：
