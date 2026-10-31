@@ -15,7 +15,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white" alt="Windows 11">
   <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B&logoColor=white" alt="C++17">
-  <img src="https://img.shields.io/badge/version-v1.0.0-brightgreen" alt="v1.0.0">
+  <img src="https://img.shields.io/badge/version-v1.0.1-brightgreen" alt="v1.0.1">
 </p>
 
 ---
@@ -398,8 +398,17 @@ Mouse Wheel
 当前公开版本：
 
 ```text
-v1.0.0
+v1.0.1
 ```
+
+### v1.0.1 更新摘要
+
+- 新增“目标判定模式”设置。
+- 默认使用“鼠标悬停窗口”模式：鼠标移动到白名单浏览器上即可直接缩放，无需先点击浏览器获取焦点。
+- 可切换回“当前前台窗口”模式，以保留旧版行为。
+- 目标判定统一为顶层窗口 → 进程 → 白名单的流程。
+- 修复新增悬停模式后自定义应用 Logo / 托盘图标丢失的问题。
+- README、Changelog 与 Release Notes 同步更新。
 
 内部开发过程中使用过 V1 / V2 / V3.x 等开发编号；GitHub 正式发布版本从 `v1.0.0` 开始。
 
