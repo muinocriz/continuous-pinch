@@ -94,9 +94,9 @@ UINT CurrentModifierMask()
 // Injecting an unassigned key while Alt is still held makes the Alt release
 // a normal key-combination release. Rate-limited: one mask per Alt hold is
 // enough, a few per second while scrolling is harmless.
-static void SendMenuMaskIfAltHeld(LPARAM altHeld)
+static void SendMenuMaskIfAltHeld(WORD flags)
 {
-    if (!altHeld)
+    if ((flags & Const::InputFlag_AltHeld) == 0)
         return;
 
     const double now = NowSeconds();
@@ -212,21 +212,28 @@ static void HandleInputMessage(const MSG& msg)
     switch (msg.message)
     {
         case Const::WM_INPUT_WHEEL:
-            SendMenuMaskIfAltHeld(msg.lParam);
+            SendMenuMaskIfAltHeld(HIWORD(msg.wParam));
 
             if (g_inputCfg.enabled)
             {
+                // Each window keeps its own logical zoom (see SelectZoomWindow).
+                SelectZoomWindow(reinterpret_cast<HWND>(msg.lParam));
+
                 ApplyWheelDelta(static_cast<short>(LOWORD(msg.wParam)), g_inputCfg.sensitivityLog);
             }
             break;
 
         case Const::WM_INPUT_SOFT_RESET:
-            SendMenuMaskIfAltHeld(msg.lParam);
+            SendMenuMaskIfAltHeld(static_cast<WORD>(msg.wParam));
+
+            // lParam is the clicked window; 0 (tray menu) = the current one.
+            SelectZoomWindow(reinterpret_cast<HWND>(msg.lParam));
+
             RequestSoftReset();
             break;
 
         case Const::WM_INPUT_HARD_RESET:
-            SendMenuMaskIfAltHeld(msg.lParam);
+            SendMenuMaskIfAltHeld(static_cast<WORD>(msg.wParam));
 
             if (!HardResetDevice())
                 PostMessageW(g_mainWindow, Const::WM_APP_HARD_RESET_FAILED, 0, 0);

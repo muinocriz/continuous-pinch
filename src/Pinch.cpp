@@ -143,6 +143,10 @@ void RequestSoftReset()
 }
 
 
+// Per-window state (defined below); a hard reset forgets all of it.
+static void ForgetAllWindowZooms();
+
+
 bool HardResetDevice()
 {
     if (g_pinch.active)
@@ -151,8 +155,117 @@ bool HardResetDevice()
     DestroyTouchpadDevice();
 
     g_pinch = PinchState{};
+    ForgetAllWindowZooms();
 
     return CreateTouchpadDevice();
+}
+
+
+// ============================================================================
+// Per-window logical zoom
+// ============================================================================
+//
+// The tool cannot read a page's real pinch scale, so it tracks a logical one
+// (log zoom, 0 = 100%) and never zooms out below it. With a single value for
+// all windows, zooming window A to 200% and then zooming out in window B
+// (really at 100%) wasted wheel travel, and back in A the tool believed A
+// was at 100% and refused to zoom it out. Each top-level window now has its
+// own value. Tabs inside one window still share one -- a tab switch cannot
+// be observed from here.
+//
+// g_pinch always describes the current window. The others are parked in
+// g_savedZooms; windows at 100% are not stored.
+
+namespace
+{
+
+struct WindowZoom
+{
+    HWND window = nullptr;
+    DWORD pid = 0;  // guards against HWND reuse by another process
+    double logZoom = 0.0;
+};
+
+}  // namespace
+
+static HWND g_zoomWindow = nullptr;
+static DWORD g_zoomWindowPid = 0;
+static std::vector<WindowZoom> g_savedZooms;
+
+static constexpr size_t MaxSavedZooms = 64;
+
+
+static DWORD WindowProcessId(HWND window)
+{
+    DWORD pid = 0;
+
+    GetWindowThreadProcessId(window, &pid);
+
+    return pid;
+}
+
+
+static void ForgetAllWindowZooms()
+{
+    g_savedZooms.clear();
+    g_zoomWindow = nullptr;
+    g_zoomWindowPid = 0;
+}
+
+
+void SelectZoomWindow(HWND window)
+{
+    if (!window)
+        return;
+
+    const DWORD pid = WindowProcessId(window);
+
+    if (window == g_zoomWindow && pid == g_zoomWindowPid)
+        return;
+
+    // Leave the previous window where it actually is: lift its contacts and
+    // drop the rest of its animation.
+    if (g_pinch.active)
+        EndActiveSegment();
+
+    if (g_pinch.active)  // lifting failed; the device is in trouble anyway
+        ClearActiveSegmentOnly();
+
+    const double previousLogZoom = std::max(0.0, g_pinch.appliedLogZoom);
+
+    if (g_zoomWindow && previousLogZoom > Const::LogZoomEpsilon)
+        g_savedZooms.push_back({g_zoomWindow, g_zoomWindowPid, previousLogZoom});
+
+    // Enter the new window with its own value (100% if never zoomed).
+    double logZoom = 0.0;
+
+    for (auto it = g_savedZooms.begin(); it != g_savedZooms.end(); ++it)
+    {
+        if (it->window == window && it->pid == pid)
+        {
+            logZoom = it->logZoom;
+            g_savedZooms.erase(it);
+            break;
+        }
+    }
+
+    // Forget closed windows, and HWNDs that now belong to another process.
+    g_savedZooms.erase(
+        std::remove_if(
+            g_savedZooms.begin(), g_savedZooms.end(), [](const WindowZoom& entry)
+            { return !IsWindow(entry.window) || WindowProcessId(entry.window) != entry.pid; }),
+        g_savedZooms.end());
+
+    if (g_savedZooms.size() > MaxSavedZooms)
+        g_savedZooms.erase(g_savedZooms.begin());  // oldest
+
+    g_pinch.targetLogZoom = logZoom;
+    g_pinch.appliedLogZoom = logZoom;
+    g_pinch.segmentBaseLogZoom = logZoom;
+    g_pinch.softResetting = false;
+
+    g_zoomWindow = window;
+    g_zoomWindowPid = pid;
 }
 
 
