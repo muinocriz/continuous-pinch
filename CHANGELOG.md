@@ -8,6 +8,30 @@ MAJOR.MINOR.PATCH
 
 ---
 
+## v1.1.0
+
+Input engine update.
+
+### Changed
+
+- 低级鼠标钩子、捏合引擎和虚拟触控板移到独立的输入线程。设置窗口、写配置、弹窗等界面操作不再影响鼠标输入，也不会导致钩子被 Windows 因超时而静默卸载。
+- 帧定时器改为高精度 waitable timer，仅在手势进行时运行；移除常驻的 `timeBeginPeriod(1)`。空闲时程序不再以 125 Hz 轮询，笔记本续航更友好；实际帧率也不再受 `SetTimer` 最小 10 ms 的限制。
+- 鼠标钩子轻量化：只处理滚轮和中键，其他事件（包括鼠标移动）立即放行；悬停目标直接按事件坐标判定，并按窗口和进程缓存结果。
+- 注入的触控板帧使用真实时间戳，并按文档设置 `POINTER_FLAG_DOWN / UPDATE / UP`。如在某些 Windows 版本上出现兼容问题，可将 `Common.h` 中的 `UsePointerTransitionFlags` 改为 `false` 恢复旧行为。
+- 输入线程以“高于正常”优先级运行。
+
+### Fixed
+
+- 修复 `Alt + 滚轮` / `Alt + 中键` 后松开 Alt 时，浏览器菜单被激活、后续按键跑到菜单上的问题（在 Alt 按住期间注入无副作用的屏蔽键 `vkE8`）。
+
+### Development
+
+- 引入 `.clang-format` 统一代码风格；源码按功能拆分为多个模块。
+- `build.bat` 编译 `src\*.cpp`，中间文件输出到 `build\`，启用 `/W4`，支持 `build.bat nopause`。
+- 新增 `.gitignore`、`.gitattributes`。
+
+---
+
 ## v1.0.2
 
 Bug fix release.
