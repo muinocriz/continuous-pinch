@@ -73,10 +73,14 @@ static HWND RootWindow(HWND hwnd)
 }
 
 
-bool IsTargetAllowed(TargetMode mode, POINT cursor, const std::vector<std::wstring>& whitelist)
+bool IsTargetAllowed(TargetMode mode, POINT cursor, const std::vector<std::wstring>& whitelist,
+                     HWND* rootOut)
 {
     HWND root = mode == TargetMode::Hover ? RootWindow(WindowFromPoint(cursor))
                                           : RootWindow(GetForegroundWindow());
+
+    if (rootOut)
+        *rootOut = root;
 
     if (!root)
         return false;

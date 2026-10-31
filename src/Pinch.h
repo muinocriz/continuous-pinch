@@ -11,7 +11,13 @@
 // Adds wheel notches to the target zoom and starts a segment if needed.
 void ApplyWheelDelta(short wheelDelta, double sensitivityLog);
 
-// Smoothly returns to the logical 100% baseline.
+// Makes `window` (a top-level window) the zoom target. Each window keeps its
+// own logical zoom: switching saves the previous window's value, lifts its
+// contacts, and restores this window's value (100% if new). nullptr keeps
+// the current target.
+void SelectZoomWindow(HWND window);
+
+// Smoothly returns the current window to the logical 100% baseline.
 void RequestSoftReset();
 
 // Lifts any active contacts and recreates the synthetic touchpad.

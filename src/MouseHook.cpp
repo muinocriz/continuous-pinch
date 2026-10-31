@@ -62,10 +62,13 @@ static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lPara
         return CallNextHookEx(g_mouseHook, nCode, wParam, lParam);
 
     // Hover mode checks the window under this event's own position.
-    if (!IsTargetAllowed(cfg.targetMode, info->pt, cfg.whitelist))
+    HWND root = nullptr;
+
+    if (!IsTargetAllowed(cfg.targetMode, info->pt, cfg.whitelist, &root))
         return CallNextHookEx(g_mouseHook, nCode, wParam, lParam);
 
-    const LPARAM altHeld = (mods & MM_ALT) ? 1 : 0;
+    const WORD flags = (mods & MM_ALT) ? Const::InputFlag_AltHeld : 0;
+    const LPARAM target = reinterpret_cast<LPARAM>(root);
     const DWORD self = GetCurrentThreadId();
 
     if (isWheel)
@@ -73,7 +76,7 @@ static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lPara
         const short delta = GET_WHEEL_DELTA_WPARAM(info->mouseData);
 
         PostThreadMessageW(self, Const::WM_INPUT_WHEEL,
-                           static_cast<WPARAM>(static_cast<USHORT>(delta)), altHeld);
+                           MAKEWPARAM(static_cast<USHORT>(delta), flags), target);
 
         return 1;
     }
@@ -81,10 +84,10 @@ static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lPara
     // Middle button: hard reset takes precedence if both use the same keys.
     g_swallowMiddleUp = true;
 
-    PostThreadMessageW(self,
-                       mods == cfg.hardResetModifiers ? Const::WM_INPUT_HARD_RESET
-                                                      : Const::WM_INPUT_SOFT_RESET,
-                       0, altHeld);
+    if (mods == cfg.hardResetModifiers)
+        PostThreadMessageW(self, Const::WM_INPUT_HARD_RESET, flags, 0);
+    else
+        PostThreadMessageW(self, Const::WM_INPUT_SOFT_RESET, flags, target);
 
     return 1;
 }

@@ -15,7 +15,10 @@
 // `whitelist` holds lower-case executable names (see ParseWhitelist()).
 // The process lookup only runs when the target window or its process
 // changes; otherwise the cached answer is returned.
-bool IsTargetAllowed(TargetMode mode, POINT cursor, const std::vector<std::wstring>& whitelist);
+//
+// `root` (optional) receives the target's top-level window, or nullptr.
+bool IsTargetAllowed(TargetMode mode, POINT cursor, const std::vector<std::wstring>& whitelist,
+                     HWND* root = nullptr);
 
 // Forget the cached answer, e.g. after the whitelist changed.
 void InvalidateTargetCache();

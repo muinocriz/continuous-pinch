@@ -93,11 +93,18 @@ constexpr UINT WM_APP_SHOW_SETTINGS = WM_APP + 4;
 constexpr UINT WM_APP_HARD_RESET_FAILED = WM_APP + 5;
 
 // Input thread messages (PostThreadMessage)
-constexpr UINT WM_INPUT_WHEEL = WM_APP + 101;       // wParam: wheel delta, lParam: Alt held
-constexpr UINT WM_INPUT_SOFT_RESET = WM_APP + 102;  // lParam: Alt held
-constexpr UINT WM_INPUT_HARD_RESET = WM_APP + 103;  // lParam: Alt held
+//   WM_INPUT_WHEEL      wParam: LOWORD = wheel delta, HIWORD = InputFlag_*
+//                       lParam: target top-level HWND
+//   WM_INPUT_SOFT_RESET wParam: InputFlag_*, lParam: target HWND (0 = current)
+//   WM_INPUT_HARD_RESET wParam: InputFlag_*, lParam: unused
+constexpr UINT WM_INPUT_WHEEL = WM_APP + 101;
+constexpr UINT WM_INPUT_SOFT_RESET = WM_APP + 102;
+constexpr UINT WM_INPUT_HARD_RESET = WM_APP + 103;
 constexpr UINT WM_INPUT_CONFIG_CHANGED = WM_APP + 104;
 constexpr UINT WM_INPUT_END_GESTURE = WM_APP + 105;
+
+// Flags carried by WM_INPUT_* messages from the mouse hook.
+constexpr WORD InputFlag_AltHeld = 0x0001;  // Alt was held: send the menu mask key
 
 // Tray menu IDs
 constexpr UINT IDM_TRAY_ENABLE = 4001;
