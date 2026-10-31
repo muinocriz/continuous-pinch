@@ -51,7 +51,8 @@
 // visual-viewport scale back from Chromium.
 // ============================================================================
 
-namespace Const {
+namespace Const
+{
 
 constexpr wchar_t AppName[] = L"Continuous Pinch V3";
 constexpr wchar_t ConfigFileName[] = L"continuous_pinch_v3.ini";
@@ -61,20 +62,20 @@ constexpr wchar_t SingleInstanceMutex[] = L"Local\\ContinuousPinchV3.SingleInsta
 
 // INI keys. Keys must never be localized.
 constexpr wchar_t IniKeyEnabled[] = L"Enabled";
-constexpr wchar_t IniKeyEnabledLegacy[] = L"启用";   // v1.0.0 / v1.0.1 bug
+constexpr wchar_t IniKeyEnabledLegacy[] = L"启用";  // v1.0.0 / v1.0.1 bug
 
 // Synthetic precision touchpad size: 100 mm x 60 mm in HIMETRIC.
-constexpr LONG TouchpadWidth  = 10000;
+constexpr LONG TouchpadWidth = 10000;
 constexpr LONG TouchpadHeight = 6000;
 constexpr LONG CenterX = TouchpadWidth / 2;
 constexpr LONG CenterY = TouchpadHeight / 2;
 
 // A slightly wider neutral separation gives each wheel notch more absolute
 // finger travel while preserving the same scale ratio. This helps Windows'
- // touchpad gesture recognizer notice slow single-notch input.
+// touchpad gesture recognizer notice slow single-notch input.
 constexpr double BaseDistance = 4200.0;
-constexpr double MinDistance  = 1000.0;
-constexpr double MaxDistance  = 8200.0;
+constexpr double MinDistance = 1000.0;
+constexpr double MaxDistance = 8200.0;
 constexpr double MaxLogicalScale = 16.0;
 
 constexpr UINT AnimationTimerId = 1;
@@ -88,7 +89,7 @@ constexpr double MaxAbsNotchesPerEvent = 5.0;
 constexpr double LinearFingerSpeed = 23000.0;
 constexpr double ExponentialRate = 64.0;
 constexpr double AdaptiveRateNear = 46.0;
-constexpr double AdaptiveRateFar  = 88.0;
+constexpr double AdaptiveRateFar = 88.0;
 constexpr double AdaptiveFullDiff = 900.0;
 constexpr double MaxFingerSpeed = 22000.0;
 constexpr double ResetFingerSpeed = 26000.0;
@@ -100,37 +101,37 @@ constexpr UINT TrayIconId = 1;
 constexpr UINT WM_TRAY = WM_APP + 20;
 
 // App messages
-constexpr UINT WM_APP_WHEEL      = WM_APP + 1;
+constexpr UINT WM_APP_WHEEL = WM_APP + 1;
 constexpr UINT WM_APP_SOFT_RESET = WM_APP + 2;
 constexpr UINT WM_APP_HARD_RESET = WM_APP + 3;
 constexpr UINT WM_APP_SHOW_SETTINGS = WM_APP + 4;
 
 // Tray menu IDs
-constexpr UINT IDM_TRAY_ENABLE   = 4001;
+constexpr UINT IDM_TRAY_ENABLE = 4001;
 constexpr UINT IDM_TRAY_SETTINGS = 4002;
-constexpr UINT IDM_TRAY_RESET    = 4003;
-constexpr UINT IDM_TRAY_HARDRESET= 4004;
-constexpr UINT IDM_TRAY_STARTUP  = 4005;
-constexpr UINT IDM_TRAY_EXIT     = 4006;
+constexpr UINT IDM_TRAY_RESET = 4003;
+constexpr UINT IDM_TRAY_HARDRESET = 4004;
+constexpr UINT IDM_TRAY_STARTUP = 4005;
+constexpr UINT IDM_TRAY_EXIT = 4006;
 
 // Settings controls
-constexpr int IDC_SENS_SLIDER   = 5001;
-constexpr int IDC_SENS_VALUE    = 5002;
-constexpr int IDC_CURVE         = 5003;
-constexpr int IDC_WHITELIST     = 5004;
-constexpr int IDC_ZOOM_MOD      = 5005;
-constexpr int IDC_RESET_MOD     = 5006;
+constexpr int IDC_SENS_SLIDER = 5001;
+constexpr int IDC_SENS_VALUE = 5002;
+constexpr int IDC_CURVE = 5003;
+constexpr int IDC_WHITELIST = 5004;
+constexpr int IDC_ZOOM_MOD = 5005;
+constexpr int IDC_RESET_MOD = 5006;
 constexpr int IDC_HARDRESET_MOD = 5007;
-constexpr int IDC_EXIT_HOTKEY   = 5008;
-constexpr int IDC_STARTUP       = 5009;
-constexpr int IDC_ENABLED       = 5010;
-constexpr int IDC_APPLY         = 5011;
-constexpr int IDC_CLOSE         = 5012;
-constexpr int IDC_DEFAULTS      = 5013;
-constexpr int IDC_LANGUAGE      = 5014;
-constexpr int IDC_TARGET_MODE     = 5015;
+constexpr int IDC_EXIT_HOTKEY = 5008;
+constexpr int IDC_STARTUP = 5009;
+constexpr int IDC_ENABLED = 5010;
+constexpr int IDC_APPLY = 5011;
+constexpr int IDC_CLOSE = 5012;
+constexpr int IDC_DEFAULTS = 5013;
+constexpr int IDC_LANGUAGE = 5014;
+constexpr int IDC_TARGET_MODE = 5015;
 
-} // namespace Const
+}  // namespace Const
 
 
 // ============================================================================
@@ -159,9 +160,9 @@ enum class TargetMode : int
 
 enum ModifierMask : UINT
 {
-    MM_NONE  = 0,
-    MM_ALT   = 1 << 0,
-    MM_CTRL  = 1 << 1,
+    MM_NONE = 0,
+    MM_ALT = 1 << 0,
+    MM_CTRL = 1 << 1,
     MM_SHIFT = 1 << 2
 };
 
@@ -207,15 +208,10 @@ static UiLanguage CurrentLanguage()
     return g_cfg.language;
 }
 
-static const wchar_t* L10n(
-    const wchar_t* zh,
-    const wchar_t* en)
+static const wchar_t* L10n(const wchar_t* zh, const wchar_t* en)
 {
-    return CurrentLanguage() == UiLanguage::Chinese
-        ? zh
-        : en;
+    return CurrentLanguage() == UiLanguage::Chinese ? zh : en;
 }
-
 
 
 // ============================================================================
@@ -224,7 +220,7 @@ static const wchar_t* L10n(
 
 enum : ULONG
 {
-    Compat_SDCO_PHYSICAL_SIZE          = 0x1,
+    Compat_SDCO_PHYSICAL_SIZE = 0x1,
     Compat_SDCO_TOUCHPAD_GESTURE_ONLY = 0x2
 };
 
@@ -240,8 +236,7 @@ struct SyntheticDeviceCreationParamsCompat
 };
 
 using PFN_CreateSyntheticPointerDevice2 =
-    HSYNTHETICPOINTERDEVICE (WINAPI*)(
-        const SyntheticDeviceCreationParamsCompat*);
+    HSYNTHETICPOINTERDEVICE(WINAPI*)(const SyntheticDeviceCreationParamsCompat*);
 
 static PFN_CreateSyntheticPointerDevice2 g_CreateSyntheticPointerDevice2 = nullptr;
 static HSYNTHETICPOINTERDEVICE g_touchpad = nullptr;
@@ -258,11 +253,11 @@ static HHOOK g_mouseHook = nullptr;
 
 // Target-application cache. The main message thread updates it; WH_MOUSE_LL
 // only reads the atomic flag so the low-level hook remains lightweight.
-static std::atomic<bool> g_targetAllowed{ false };
+static std::atomic<bool> g_targetAllowed{false};
 static HWND g_lastTargetRoot = nullptr;
 
-static std::atomic<bool> g_swallowMiddleUp{ false };
-static std::atomic<bool> g_enabled{ true };
+static std::atomic<bool> g_swallowMiddleUp{false};
+static std::atomic<bool> g_enabled{true};
 
 static NOTIFYICONDATAW g_nid{};
 
@@ -279,7 +274,8 @@ static std::wstring g_configPath;
 
 static double NowSeconds()
 {
-    static LARGE_INTEGER frequency = [] {
+    static LARGE_INTEGER frequency = []
+    {
         LARGE_INTEGER f{};
         QueryPerformanceFrequency(&f);
         return f;
@@ -288,8 +284,7 @@ static double NowSeconds()
     LARGE_INTEGER counter{};
     QueryPerformanceCounter(&counter);
 
-    return static_cast<double>(counter.QuadPart) /
-           static_cast<double>(frequency.QuadPart);
+    return static_cast<double>(counter.QuadPart) / static_cast<double>(frequency.QuadPart);
 }
 
 
@@ -299,7 +294,8 @@ static double NowSeconds()
 
 static std::wstring Trim(std::wstring s)
 {
-    auto notSpace = [](wchar_t c) {
+    auto notSpace = [](wchar_t c)
+    {
         return !iswspace(c);
     };
 
@@ -315,13 +311,8 @@ static std::wstring Trim(std::wstring s)
 
 static std::wstring ToLower(std::wstring s)
 {
-    std::transform(
-        s.begin(),
-        s.end(),
-        s.begin(),
-        [](wchar_t c) {
-            return static_cast<wchar_t>(towlower(c));
-        });
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](wchar_t c) { return static_cast<wchar_t>(towlower(c)); });
 
     return s;
 }
@@ -331,9 +322,7 @@ static std::wstring BaseName(const std::wstring& path)
 {
     const size_t pos = path.find_last_of(L"\\/");
 
-    return (pos == std::wstring::npos)
-        ? path
-        : path.substr(pos + 1);
+    return (pos == std::wstring::npos) ? path : path.substr(pos + 1);
 }
 
 
@@ -410,11 +399,8 @@ static std::wstring GetExePath()
 {
     wchar_t path[32768]{};
 
-    const DWORD len = GetModuleFileNameW(
-        nullptr,
-        path,
-        static_cast<DWORD>(
-            sizeof(path) / sizeof(path[0])));
+    const DWORD len =
+        GetModuleFileNameW(nullptr, path, static_cast<DWORD>(sizeof(path) / sizeof(path[0])));
 
     return std::wstring(path, len);
 }
@@ -429,43 +415,27 @@ static std::wstring GetConfigPath()
     if (slash == std::wstring::npos)
         return Const::ConfigFileName;
 
-    return exe.substr(0, slash + 1) +
-           Const::ConfigFileName;
+    return exe.substr(0, slash + 1) + Const::ConfigFileName;
 }
 
 
-static int ReadIniInt(
-    const wchar_t* section,
-    const wchar_t* key,
-    int defaultValue)
+static int ReadIniInt(const wchar_t* section, const wchar_t* key, int defaultValue)
 {
     return static_cast<int>(
-        GetPrivateProfileIntW(
-            section,
-            key,
-            defaultValue,
-            g_configPath.c_str()));
+        GetPrivateProfileIntW(section, key, defaultValue, g_configPath.c_str()));
 }
 
 
-static double ReadIniDouble(
-    const wchar_t* section,
-    const wchar_t* key,
-    double defaultValue)
+static double ReadIniDouble(const wchar_t* section, const wchar_t* key, double defaultValue)
 {
     wchar_t buffer[128]{};
 
     wchar_t def[64]{};
     swprintf_s(def, L"%.6f", defaultValue);
 
-    GetPrivateProfileStringW(
-        section,
-        key,
-        def,
-        buffer,
-        static_cast<DWORD>(
-            sizeof(buffer) / sizeof(buffer[0])),
-        g_configPath.c_str());
+    GetPrivateProfileStringW(section, key, def, buffer,
+                             static_cast<DWORD>(sizeof(buffer) / sizeof(buffer[0])),
+                             g_configPath.c_str());
 
     wchar_t* end = nullptr;
     const double value = wcstod(buffer, &end);
@@ -477,63 +447,36 @@ static double ReadIniDouble(
 }
 
 
-static std::wstring ReadIniString(
-    const wchar_t* section,
-    const wchar_t* key,
-    const wchar_t* defaultValue)
+static std::wstring ReadIniString(const wchar_t* section, const wchar_t* key,
+                                  const wchar_t* defaultValue)
 {
     wchar_t buffer[8192]{};
 
-    GetPrivateProfileStringW(
-        section,
-        key,
-        defaultValue,
-        buffer,
-        static_cast<DWORD>(
-            sizeof(buffer) / sizeof(buffer[0])),
-        g_configPath.c_str());
+    GetPrivateProfileStringW(section, key, defaultValue, buffer,
+                             static_cast<DWORD>(sizeof(buffer) / sizeof(buffer[0])),
+                             g_configPath.c_str());
 
     return buffer;
 }
 
 
-static void WriteIniInt(
-    const wchar_t* section,
-    const wchar_t* key,
-    int value)
+static void WriteIniInt(const wchar_t* section, const wchar_t* key, int value)
 {
     wchar_t buffer[64]{};
 
-    swprintf_s(
-        buffer,
-        L"%d",
-        value);
+    swprintf_s(buffer, L"%d", value);
 
-    WritePrivateProfileStringW(
-        section,
-        key,
-        buffer,
-        g_configPath.c_str());
+    WritePrivateProfileStringW(section, key, buffer, g_configPath.c_str());
 }
 
 
-static void WriteIniDouble(
-    const wchar_t* section,
-    const wchar_t* key,
-    double value)
+static void WriteIniDouble(const wchar_t* section, const wchar_t* key, double value)
 {
     wchar_t buffer[64]{};
 
-    swprintf_s(
-        buffer,
-        L"%.6f",
-        value);
+    swprintf_s(buffer, L"%.6f", value);
 
-    WritePrivateProfileStringW(
-        section,
-        key,
-        buffer,
-        g_configPath.c_str());
+    WritePrivateProfileStringW(section, key, buffer, g_configPath.c_str());
 }
 
 
@@ -541,12 +484,9 @@ static bool IsRunAtStartup()
 {
     HKEY key = nullptr;
 
-    if (RegOpenKeyExW(
-            HKEY_CURRENT_USER,
-            L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-            0,
-            KEY_QUERY_VALUE,
-            &key) != ERROR_SUCCESS)
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0,
+                      KEY_QUERY_VALUE, &key)
+        != ERROR_SUCCESS)
     {
         return false;
     }
@@ -555,18 +495,12 @@ static bool IsRunAtStartup()
     DWORD type = 0;
     DWORD bytes = sizeof(value);
 
-    const LSTATUS status = RegQueryValueExW(
-        key,
-        Const::RunRegistryValue,
-        nullptr,
-        &type,
-        reinterpret_cast<BYTE*>(value),
-        &bytes);
+    const LSTATUS status = RegQueryValueExW(key, Const::RunRegistryValue, nullptr, &type,
+                                            reinterpret_cast<BYTE*>(value), &bytes);
 
     RegCloseKey(key);
 
-    return status == ERROR_SUCCESS &&
-           (type == REG_SZ || type == REG_EXPAND_SZ);
+    return status == ERROR_SUCCESS && (type == REG_SZ || type == REG_EXPAND_SZ);
 }
 
 
@@ -574,16 +508,9 @@ static bool SetRunAtStartup(bool enabled)
 {
     HKEY key = nullptr;
 
-    if (RegCreateKeyExW(
-            HKEY_CURRENT_USER,
-            L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-            0,
-            nullptr,
-            0,
-            KEY_SET_VALUE,
-            nullptr,
-            &key,
-            nullptr) != ERROR_SUCCESS)
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0,
+                        nullptr, 0, KEY_SET_VALUE, nullptr, &key, nullptr)
+        != ERROR_SUCCESS)
     {
         return false;
     }
@@ -592,28 +519,16 @@ static bool SetRunAtStartup(bool enabled)
 
     if (enabled)
     {
-        std::wstring command =
-            L"\"" + GetExePath() + L"\"";
+        std::wstring command = L"\"" + GetExePath() + L"\"";
 
-        const DWORD bytes =
-            static_cast<DWORD>(
-                (command.size() + 1) *
-                sizeof(wchar_t));
+        const DWORD bytes = static_cast<DWORD>((command.size() + 1) * sizeof(wchar_t));
 
-        status = RegSetValueExW(
-            key,
-            Const::RunRegistryValue,
-            0,
-            REG_SZ,
-            reinterpret_cast<const BYTE*>(
-                command.c_str()),
-            bytes);
+        status = RegSetValueExW(key, Const::RunRegistryValue, 0, REG_SZ,
+                                reinterpret_cast<const BYTE*>(command.c_str()), bytes);
     }
     else
     {
-        status = RegDeleteValueW(
-            key,
-            Const::RunRegistryValue);
+        status = RegDeleteValueW(key, Const::RunRegistryValue);
 
         if (status == ERROR_FILE_NOT_FOUND)
             status = ERROR_SUCCESS;
@@ -629,16 +544,8 @@ static void LoadConfig()
 {
     AppConfig cfg{};
 
-    cfg.language =
-        static_cast<UiLanguage>(
-            std::clamp(
-                ReadIniInt(
-                    L"General",
-                    L"Language",
-                    static_cast<int>(
-                        UiLanguage::Chinese)),
-                0,
-                1));
+    cfg.language = static_cast<UiLanguage>(std::clamp(
+        ReadIniInt(L"General", L"Language", static_cast<int>(UiLanguage::Chinese)), 0, 1));
 
     // The INI key is always "Enabled".
     //
@@ -647,117 +554,51 @@ static void LoadConfig()
     // matching the saved language is the one the old version wrote last.
     // SaveConfig() removes the legacy key, so after the first save only
     // "Enabled" remains.
-    const int enabledValue =
-        ReadIniInt(
-            L"General",
-            Const::IniKeyEnabled,
-            -1);
+    const int enabledValue = ReadIniInt(L"General", Const::IniKeyEnabled, -1);
 
-    const int legacyEnabledValue =
-        ReadIniInt(
-            L"General",
-            Const::IniKeyEnabledLegacy,
-            -1);
+    const int legacyEnabledValue = ReadIniInt(L"General", Const::IniKeyEnabledLegacy, -1);
 
-    if (legacyEnabledValue != -1 &&
-        (cfg.language == UiLanguage::Chinese ||
-         enabledValue == -1))
+    if (legacyEnabledValue != -1 && (cfg.language == UiLanguage::Chinese || enabledValue == -1))
     {
         cfg.enabled = legacyEnabledValue != 0;
     }
     else
     {
-        cfg.enabled = enabledValue != 0;   // -1 (missing) => enabled
+        cfg.enabled = enabledValue != 0;  // -1 (missing) => enabled
     }
 
-    cfg.sensitivityLog =
-        std::clamp(
-            ReadIniDouble(
-                L"Zoom",
-                L"SensitivityLog",
-                0.070),
-            0.020,
-            0.180);
+    cfg.sensitivityLog = std::clamp(ReadIniDouble(L"Zoom", L"SensitivityLog", 0.070), 0.020, 0.180);
 
-    cfg.curve =
-        static_cast<SmoothingCurve>(
-            std::clamp(
-                ReadIniInt(
-                    L"Zoom",
-                    L"SmoothingCurve",
-                    static_cast<int>(
-                        SmoothingCurve::Adaptive)),
-                0,
-                3));
+    cfg.curve = static_cast<SmoothingCurve>(std::clamp(
+        ReadIniInt(L"Zoom", L"SmoothingCurve", static_cast<int>(SmoothingCurve::Adaptive)), 0, 3));
 
-    cfg.zoomModifiers =
-        static_cast<UINT>(
-            ReadIniInt(
-                L"Hotkeys",
-                L"ZoomModifiers",
-                MM_ALT));
+    cfg.zoomModifiers = static_cast<UINT>(ReadIniInt(L"Hotkeys", L"ZoomModifiers", MM_ALT));
 
-    cfg.resetModifiers =
-        static_cast<UINT>(
-            ReadIniInt(
-                L"Hotkeys",
-                L"ResetModifiers",
-                MM_ALT));
+    cfg.resetModifiers = static_cast<UINT>(ReadIniInt(L"Hotkeys", L"ResetModifiers", MM_ALT));
 
     cfg.hardResetModifiers =
-        static_cast<UINT>(
-            ReadIniInt(
-                L"Hotkeys",
-                L"HardResetModifiers",
-                MM_ALT | MM_CTRL));
+        static_cast<UINT>(ReadIniInt(L"Hotkeys", L"HardResetModifiers", MM_ALT | MM_CTRL));
 
-    cfg.exitVk =
-        static_cast<UINT>(
-            ReadIniInt(
-                L"Hotkeys",
-                L"ExitVk",
-                VK_F12));
+    cfg.exitVk = static_cast<UINT>(ReadIniInt(L"Hotkeys", L"ExitVk", VK_F12));
 
     cfg.exitMods =
-        static_cast<UINT>(
-            ReadIniInt(
-                L"Hotkeys",
-                L"ExitMods",
-                MOD_CONTROL |
-                MOD_ALT |
-                MOD_SHIFT));
+        static_cast<UINT>(ReadIniInt(L"Hotkeys", L"ExitMods", MOD_CONTROL | MOD_ALT | MOD_SHIFT));
 
-    cfg.whitelist =
-        ReadIniString(
-            L"Applications",
-            L"Whitelist",
-            L"chrome.exe;msedge.exe");
+    cfg.whitelist = ReadIniString(L"Applications", L"Whitelist", L"chrome.exe;msedge.exe");
 
-    cfg.targetMode =
-        static_cast<TargetMode>(
-            std::clamp(
-                ReadIniInt(
-                    L"Applications",
-                    L"TargetMode",
-                    static_cast<int>(
-                        TargetMode::Hover)),
-                0,
-                1));
+    cfg.targetMode = static_cast<TargetMode>(std::clamp(
+        ReadIniInt(L"Applications", L"TargetMode", static_cast<int>(TargetMode::Hover)), 0, 1));
 
-    cfg.startWithWindows =
-        IsRunAtStartup();
+    cfg.startWithWindows = IsRunAtStartup();
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         g_cfg = cfg;
         g_committedCfg = cfg;
     }
 
-    g_enabled.store(
-        cfg.enabled,
-        std::memory_order_relaxed);
+    g_enabled.store(cfg.enabled, std::memory_order_relaxed);
 }
 
 
@@ -767,84 +608,39 @@ static void SaveConfig()
     AppConfig cfg;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         cfg = g_committedCfg;
     }
 
-    WriteIniInt(
-        L"General",
-        Const::IniKeyEnabled,
-        cfg.enabled ? 1 : 0);
+    WriteIniInt(L"General", Const::IniKeyEnabled, cfg.enabled ? 1 : 0);
 
     // Remove the legacy localized key written by v1.0.0 / v1.0.1.
-    WritePrivateProfileStringW(
-        L"General",
-        Const::IniKeyEnabledLegacy,
-        nullptr,
-        g_configPath.c_str());
+    WritePrivateProfileStringW(L"General", Const::IniKeyEnabledLegacy, nullptr,
+                               g_configPath.c_str());
 
-    WriteIniInt(
-        L"General",
-        L"Language",
-        static_cast<int>(
-            cfg.language));
+    WriteIniInt(L"General", L"Language", static_cast<int>(cfg.language));
 
-    WriteIniDouble(
-        L"Zoom",
-        L"SensitivityLog",
-        cfg.sensitivityLog);
+    WriteIniDouble(L"Zoom", L"SensitivityLog", cfg.sensitivityLog);
 
-    WriteIniInt(
-        L"Zoom",
-        L"SmoothingCurve",
-        static_cast<int>(cfg.curve));
+    WriteIniInt(L"Zoom", L"SmoothingCurve", static_cast<int>(cfg.curve));
 
-    WriteIniInt(
-        L"Hotkeys",
-        L"ZoomModifiers",
-        static_cast<int>(
-            cfg.zoomModifiers));
+    WriteIniInt(L"Hotkeys", L"ZoomModifiers", static_cast<int>(cfg.zoomModifiers));
 
-    WriteIniInt(
-        L"Hotkeys",
-        L"ResetModifiers",
-        static_cast<int>(
-            cfg.resetModifiers));
+    WriteIniInt(L"Hotkeys", L"ResetModifiers", static_cast<int>(cfg.resetModifiers));
 
-    WriteIniInt(
-        L"Hotkeys",
-        L"HardResetModifiers",
-        static_cast<int>(
-            cfg.hardResetModifiers));
+    WriteIniInt(L"Hotkeys", L"HardResetModifiers", static_cast<int>(cfg.hardResetModifiers));
 
-    WriteIniInt(
-        L"Hotkeys",
-        L"ExitVk",
-        static_cast<int>(
-            cfg.exitVk));
+    WriteIniInt(L"Hotkeys", L"ExitVk", static_cast<int>(cfg.exitVk));
 
-    WriteIniInt(
-        L"Hotkeys",
-        L"ExitMods",
-        static_cast<int>(
-            cfg.exitMods));
+    WriteIniInt(L"Hotkeys", L"ExitMods", static_cast<int>(cfg.exitMods));
 
-    WritePrivateProfileStringW(
-        L"Applications",
-        L"Whitelist",
-        cfg.whitelist.c_str(),
-        g_configPath.c_str());
+    WritePrivateProfileStringW(L"Applications", L"Whitelist", cfg.whitelist.c_str(),
+                               g_configPath.c_str());
 
-    WriteIniInt(
-        L"Applications",
-        L"TargetMode",
-        static_cast<int>(
-            cfg.targetMode));
+    WriteIniInt(L"Applications", L"TargetMode", static_cast<int>(cfg.targetMode));
 
-    SetRunAtStartup(
-        cfg.startWithWindows);
+    SetRunAtStartup(cfg.startWithWindows);
 }
 
 
@@ -857,71 +653,45 @@ static bool IsAllowedProcess(DWORD pid)
     if (pid == 0)
         return false;
 
-    HANDLE process = OpenProcess(
-        PROCESS_QUERY_LIMITED_INFORMATION,
-        FALSE,
-        pid);
+    HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
 
     if (!process)
         return false;
 
     wchar_t path[32768]{};
-    DWORD size = static_cast<DWORD>(
-        sizeof(path) / sizeof(path[0]));
+    DWORD size = static_cast<DWORD>(sizeof(path) / sizeof(path[0]));
 
-    const BOOL ok =
-        QueryFullProcessImageNameW(
-            process,
-            0,
-            path,
-            &size);
+    const BOOL ok = QueryFullProcessImageNameW(process, 0, path, &size);
 
     CloseHandle(process);
 
     if (!ok)
         return false;
 
-    const std::wstring exe =
-        ToLower(
-            BaseName(
-                std::wstring(
-                    path,
-                    size)));
+    const std::wstring exe = ToLower(BaseName(std::wstring(path, size)));
 
     std::wstring whitelist;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
-        whitelist =
-            g_cfg.whitelist;
+        whitelist = g_cfg.whitelist;
     }
 
-    const auto entries =
-        ParseWhitelist(
-            whitelist);
+    const auto entries = ParseWhitelist(whitelist);
 
-    return std::find(
-        entries.begin(),
-        entries.end(),
-        exe) !=
-        entries.end();
+    return std::find(entries.begin(), entries.end(), exe) != entries.end();
 }
 
 
 static HWND RootWindowUnderPoint(POINT pt)
 {
-    HWND hwnd =
-        WindowFromPoint(pt);
+    HWND hwnd = WindowFromPoint(pt);
 
     if (!hwnd)
         return nullptr;
 
-    HWND root =
-        GetAncestor(
-            hwnd,
-            GA_ROOT);
+    HWND root = GetAncestor(hwnd, GA_ROOT);
 
     return root ? root : hwnd;
 }
@@ -936,8 +706,7 @@ static void RefreshTargetAllowed(bool force = false)
     TargetMode mode = TargetMode::Hover;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         mode = g_cfg.targetMode;
     }
@@ -953,47 +722,35 @@ static void RefreshTargetAllowed(bool force = false)
     }
     else
     {
-        HWND hwnd =
-            GetForegroundWindow();
+        HWND hwnd = GetForegroundWindow();
 
         if (hwnd)
         {
-            HWND top =
-                GetAncestor(
-                    hwnd,
-                    GA_ROOT);
+            HWND top = GetAncestor(hwnd, GA_ROOT);
 
             root = top ? top : hwnd;
         }
     }
 
-    if (!force &&
-        root == g_lastTargetRoot)
+    if (!force && root == g_lastTargetRoot)
     {
         return;
     }
 
-    g_lastTargetRoot =
-        root;
+    g_lastTargetRoot = root;
 
     if (!root)
     {
-        g_targetAllowed.store(
-            false,
-            std::memory_order_relaxed);
+        g_targetAllowed.store(false, std::memory_order_relaxed);
 
         return;
     }
 
     DWORD pid = 0;
 
-    GetWindowThreadProcessId(
-        root,
-        &pid);
+    GetWindowThreadProcessId(root, &pid);
 
-    g_targetAllowed.store(
-        IsAllowedProcess(pid),
-        std::memory_order_relaxed);
+    g_targetAllowed.store(IsAllowedProcess(pid), std::memory_order_relaxed);
 }
 
 
@@ -1006,33 +763,21 @@ static bool ResolveCreateSyntheticPointerDevice2()
     if (g_CreateSyntheticPointerDevice2)
         return true;
 
-    HMODULE user32 =
-        GetModuleHandleW(
-            L"user32.dll");
+    HMODULE user32 = GetModuleHandleW(L"user32.dll");
 
     if (!user32)
         return false;
 
-    g_CreateSyntheticPointerDevice2 =
-        reinterpret_cast<
-            PFN_CreateSyntheticPointerDevice2>(
-                GetProcAddress(
-                    user32,
-                    "CreateSyntheticPointerDevice2"));
+    g_CreateSyntheticPointerDevice2 = reinterpret_cast<PFN_CreateSyntheticPointerDevice2>(
+        GetProcAddress(user32, "CreateSyntheticPointerDevice2"));
 
     if (!g_CreateSyntheticPointerDevice2)
     {
-        g_CreateSyntheticPointerDevice2 =
-            reinterpret_cast<
-                PFN_CreateSyntheticPointerDevice2>(
-                    GetProcAddress(
-                        user32,
-                        MAKEINTRESOURCEA(2690)));
+        g_CreateSyntheticPointerDevice2 = reinterpret_cast<PFN_CreateSyntheticPointerDevice2>(
+            GetProcAddress(user32, MAKEINTRESOURCEA(2690)));
     }
 
-    return
-        g_CreateSyntheticPointerDevice2 !=
-        nullptr;
+    return g_CreateSyntheticPointerDevice2 != nullptr;
 }
 
 
@@ -1048,23 +793,15 @@ static bool CreateTouchpadDevice()
 
     params.pointerType = PT_TOUCHPAD;
     params.maxCount = 2;
-    params.feedbackMode =
-        POINTER_FEEDBACK_NONE;
+    params.feedbackMode = POINTER_FEEDBACK_NONE;
     params.hMonitor = nullptr;
-    params.deviceWidth =
-        Const::TouchpadWidth;
-    params.deviceHeight =
-        Const::TouchpadHeight;
-    params.options =
-        Compat_SDCO_PHYSICAL_SIZE |
-        Compat_SDCO_TOUCHPAD_GESTURE_ONLY;
+    params.deviceWidth = Const::TouchpadWidth;
+    params.deviceHeight = Const::TouchpadHeight;
+    params.options = Compat_SDCO_PHYSICAL_SIZE | Compat_SDCO_TOUCHPAD_GESTURE_ONLY;
 
-    SetLastError(
-        ERROR_SUCCESS);
+    SetLastError(ERROR_SUCCESS);
 
-    g_touchpad =
-        g_CreateSyntheticPointerDevice2(
-            &params);
+    g_touchpad = g_CreateSyntheticPointerDevice2(&params);
 
     return g_touchpad != nullptr;
 }
@@ -1075,8 +812,7 @@ static void DestroyTouchpadDevice()
     if (!g_touchpad)
         return;
 
-    DestroySyntheticPointerDevice(
-        g_touchpad);
+    DestroySyntheticPointerDevice(g_touchpad);
 
     g_touchpad = nullptr;
 }
@@ -1095,8 +831,7 @@ struct PinchState
     double appliedLogZoom = 0.0;
 
     double segmentBaseLogZoom = 0.0;
-    double currentDistance =
-        Const::BaseDistance;
+    double currentDistance = Const::BaseDistance;
 
     POINT lastP1{};
     POINT lastP2{};
@@ -1111,21 +846,11 @@ struct PinchState
 static PinchState g_pinch;
 
 
-static void FingerPositionsForDistance(
-    double distance,
-    POINT& p1,
-    POINT& p2)
+static void FingerPositionsForDistance(double distance, POINT& p1, POINT& p2)
 {
-    distance =
-        std::clamp(
-            distance,
-            Const::MinDistance,
-            Const::MaxDistance);
+    distance = std::clamp(distance, Const::MinDistance, Const::MaxDistance);
 
-    const LONG half =
-        static_cast<LONG>(
-            std::lround(
-                distance / 2.0));
+    const LONG half = static_cast<LONG>(std::lround(distance / 2.0));
 
     p1.x = Const::CenterX - half;
     p1.y = Const::CenterY;
@@ -1137,32 +862,23 @@ static void FingerPositionsForDistance(
 
 static double MaxLogZoom()
 {
-    return std::log(
-        Const::MaxLogicalScale);
+    return std::log(Const::MaxLogicalScale);
 }
 
 
-static bool InjectTouchpadFrame(
-    const POINT& p1,
-    const POINT& p2,
-    bool contactsActive)
+static bool InjectTouchpadFrame(const POINT& p1, const POINT& p2, bool contactsActive)
 {
     if (!g_touchpad)
         return false;
 
     POINTER_TYPE_INFO infos[2]{};
-    const POINT points[2] =
-        { p1, p2 };
+    const POINT points[2] = {p1, p2};
 
-    for (UINT32 i = 0;
-         i < 2;
-         ++i)
+    for (UINT32 i = 0; i < 2; ++i)
     {
-        auto& info =
-            infos[i];
+        auto& info = infos[i];
 
-        auto& pointerInfo =
-            info.touchInfo.pointerInfo;
+        auto& pointerInfo = info.touchInfo.pointerInfo;
 
         info.type = PT_TOUCHPAD;
 
@@ -1170,28 +886,20 @@ static bool InjectTouchpadFrame(
 
         pointerInfo.pointerFlags =
             contactsActive
-            ? (POINTER_FLAG_INRANGE |
-               POINTER_FLAG_INCONTACT |
-               POINTER_FLAG_CONFIDENCE)
-            : POINTER_FLAG_CONFIDENCE;
+                ? (POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT | POINTER_FLAG_CONFIDENCE)
+                : POINTER_FLAG_CONFIDENCE;
 
-        pointerInfo.ptHimetricLocation =
-            points[i];
+        pointerInfo.ptHimetricLocation = points[i];
 
-        pointerInfo.dwTime =
-            g_pinch.syntheticTime;
+        pointerInfo.dwTime = g_pinch.syntheticTime;
     }
 
-    if (!InjectSyntheticPointerInput(
-            g_touchpad,
-            infos,
-            2))
+    if (!InjectSyntheticPointerInput(g_touchpad, infos, 2))
     {
         return false;
     }
 
-    g_pinch.syntheticTime +=
-        Const::AnimationIntervalMs;
+    g_pinch.syntheticTime += Const::AnimationIntervalMs;
 
     return true;
 }
@@ -1201,8 +909,7 @@ static void ClearActiveSegmentOnly()
 {
     g_pinch.active = false;
 
-    g_pinch.currentDistance =
-        Const::BaseDistance;
+    g_pinch.currentDistance = Const::BaseDistance;
 }
 
 
@@ -1211,10 +918,7 @@ static bool EndActiveSegment()
     if (!g_pinch.active)
         return true;
 
-    if (!InjectTouchpadFrame(
-            g_pinch.lastP1,
-            g_pinch.lastP2,
-            false))
+    if (!InjectTouchpadFrame(g_pinch.lastP1, g_pinch.lastP2, false))
     {
         return false;
     }
@@ -1230,8 +934,7 @@ static bool BeginSegment()
     if (g_pinch.active)
         return true;
 
-    if (!g_touchpad &&
-        !CreateTouchpadDevice())
+    if (!g_touchpad && !CreateTouchpadDevice())
     {
         return false;
     }
@@ -1239,21 +942,13 @@ static bool BeginSegment()
     POINT p1{};
     POINT p2{};
 
-    FingerPositionsForDistance(
-        Const::BaseDistance,
-        p1,
-        p2);
+    FingerPositionsForDistance(Const::BaseDistance, p1, p2);
 
-    g_pinch.segmentBaseLogZoom =
-        g_pinch.appliedLogZoom;
+    g_pinch.segmentBaseLogZoom = g_pinch.appliedLogZoom;
 
-    g_pinch.currentDistance =
-        Const::BaseDistance;
+    g_pinch.currentDistance = Const::BaseDistance;
 
-    if (!InjectTouchpadFrame(
-            p1,
-            p2,
-            true))
+    if (!InjectTouchpadFrame(p1, p2, true))
     {
         return false;
     }
@@ -1262,8 +957,7 @@ static bool BeginSegment()
     g_pinch.lastP2 = p2;
     g_pinch.active = true;
 
-    const double now =
-        NowSeconds();
+    const double now = NowSeconds();
 
     g_pinch.lastTickTime = now;
     g_pinch.lastProgressTime = now;
@@ -1281,8 +975,7 @@ static void RequestSoftReset()
     g_pinch.targetLogZoom = 0.0;
     g_pinch.softResetting = true;
 
-    if (g_pinch.appliedLogZoom <=
-        Const::LogZoomEpsilon)
+    if (g_pinch.appliedLogZoom <= Const::LogZoomEpsilon)
     {
         g_pinch.appliedLogZoom = 0.0;
         g_pinch.targetLogZoom = 0.0;
@@ -1314,9 +1007,7 @@ static bool HardResetDevice()
 
 static void ApplyWheelDelta(short wheelDelta)
 {
-    if (wheelDelta == 0 ||
-        !g_enabled.load(
-            std::memory_order_relaxed))
+    if (wheelDelta == 0 || !g_enabled.load(std::memory_order_relaxed))
     {
         return;
     }
@@ -1324,56 +1015,31 @@ static void ApplyWheelDelta(short wheelDelta)
     AppConfig cfg;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         cfg = g_cfg;
     }
 
-    double notches =
-        static_cast<double>(
-            wheelDelta) /
-        static_cast<double>(
-            WHEEL_DELTA);
+    double notches = static_cast<double>(wheelDelta) / static_cast<double>(WHEEL_DELTA);
 
-    notches =
-        std::clamp(
-            notches,
-            -Const::MaxAbsNotchesPerEvent,
-            Const::MaxAbsNotchesPerEvent);
+    notches = std::clamp(notches, -Const::MaxAbsNotchesPerEvent, Const::MaxAbsNotchesPerEvent);
 
-    const double oldTarget =
-        g_pinch.targetLogZoom;
+    const double oldTarget = g_pinch.targetLogZoom;
 
-    g_pinch.targetLogZoom +=
-        cfg.sensitivityLog *
-        notches;
+    g_pinch.targetLogZoom += cfg.sensitivityLog * notches;
 
-    g_pinch.targetLogZoom =
-        std::clamp(
-            g_pinch.targetLogZoom,
-            0.0,
-            MaxLogZoom());
+    g_pinch.targetLogZoom = std::clamp(g_pinch.targetLogZoom, 0.0, MaxLogZoom());
 
     g_pinch.softResetting = false;
-    g_pinch.lastWheelTime =
-        NowSeconds();
+    g_pinch.lastWheelTime = NowSeconds();
 
-    if (std::abs(
-            g_pinch.targetLogZoom -
-            oldTarget) <=
-            Const::LogZoomEpsilon &&
-        g_pinch.targetLogZoom <=
-            Const::LogZoomEpsilon &&
-        notches < 0.0)
+    if (std::abs(g_pinch.targetLogZoom - oldTarget) <= Const::LogZoomEpsilon
+        && g_pinch.targetLogZoom <= Const::LogZoomEpsilon && notches < 0.0)
     {
         return;
     }
 
-    if (std::abs(
-            g_pinch.targetLogZoom -
-            g_pinch.appliedLogZoom) >
-        Const::LogZoomEpsilon)
+    if (std::abs(g_pinch.targetLogZoom - g_pinch.appliedLogZoom) > Const::LogZoomEpsilon)
     {
         BeginSegment();
     }
@@ -1384,98 +1050,57 @@ static void ApplyWheelDelta(short wheelDelta)
 // Smoothing
 // ============================================================================
 
-static double CalculateSmoothedDistance(
-    double current,
-    double desired,
-    double dt,
-    bool resetting,
-    SmoothingCurve curve)
+static double CalculateSmoothedDistance(double current, double desired, double dt, bool resetting,
+                                        SmoothingCurve curve)
 {
-    const double diff =
-        desired - current;
+    const double diff = desired - current;
 
-    if (std::abs(diff) <=
-        Const::DistanceEpsilon)
+    if (std::abs(diff) <= Const::DistanceEpsilon)
     {
         return desired;
     }
 
-    if (curve ==
-        SmoothingCurve::Direct)
+    if (curve == SmoothingCurve::Direct)
     {
         return desired;
     }
 
-    const double speedLimit =
-        resetting
-        ? Const::ResetFingerSpeed
-        : Const::MaxFingerSpeed;
+    const double speedLimit = resetting ? Const::ResetFingerSpeed : Const::MaxFingerSpeed;
 
-    if (curve ==
-        SmoothingCurve::Linear)
+    if (curve == SmoothingCurve::Linear)
     {
-        const double speed =
-            resetting
-            ? Const::ResetFingerSpeed
-            : Const::LinearFingerSpeed;
+        const double speed = resetting ? Const::ResetFingerSpeed : Const::LinearFingerSpeed;
 
-        const double step =
-            std::clamp(
-                diff,
-                -speed * dt,
-                speed * dt);
+        const double step = std::clamp(diff, -speed * dt, speed * dt);
 
         return current + step;
     }
 
-    double rate =
-        Const::ExponentialRate;
+    double rate = Const::ExponentialRate;
 
-    if (curve ==
-        SmoothingCurve::Adaptive)
+    if (curve == SmoothingCurve::Adaptive)
     {
-        const double normalized =
-            std::clamp(
-                std::abs(diff) /
-                    Const::AdaptiveFullDiff,
-                0.0,
-                1.0);
+        const double normalized = std::clamp(std::abs(diff) / Const::AdaptiveFullDiff, 0.0, 1.0);
 
-        rate =
-            Const::AdaptiveRateNear +
-            (Const::AdaptiveRateFar -
-             Const::AdaptiveRateNear) *
-            normalized;
+        rate = Const::AdaptiveRateNear
+               + (Const::AdaptiveRateFar - Const::AdaptiveRateNear) * normalized;
     }
 
-    const double alpha =
-        1.0 -
-        std::exp(
-            -rate * dt);
+    const double alpha = 1.0 - std::exp(-rate * dt);
 
-    double step =
-        diff * alpha;
+    double step = diff * alpha;
 
-    step =
-        std::clamp(
-            step,
-            -speedLimit * dt,
-            speedLimit * dt);
+    step = std::clamp(step, -speedLimit * dt, speedLimit * dt);
 
-    double result =
-        current + step;
+    double result = current + step;
 
-    if ((diff > 0.0 &&
-         result > desired) ||
-        (diff < 0.0 &&
-         result < desired))
+    if ((diff > 0.0 && result > desired) || (diff < 0.0 && result < desired))
     {
         result = desired;
     }
 
     return result;
 }
-
 
 
 // ============================================================================
@@ -1518,29 +1143,19 @@ static bool ZoomModifierStillHeld()
 
 static void RecoverAfterInjectionFailure()
 {
-    const double preserveApplied =
-        std::max(
-            0.0,
-            g_pinch.appliedLogZoom);
+    const double preserveApplied = std::max(0.0, g_pinch.appliedLogZoom);
 
-    const double preserveTarget =
-        std::max(
-            0.0,
-            g_pinch.targetLogZoom);
+    const double preserveTarget = std::max(0.0, g_pinch.targetLogZoom);
 
-    const bool preserveSoftReset =
-        g_pinch.softResetting;
+    const bool preserveSoftReset = g_pinch.softResetting;
 
     DestroyTouchpadDevice();
 
     PinchState recovered{};
 
-    recovered.appliedLogZoom =
-        preserveApplied;
-    recovered.targetLogZoom =
-        preserveTarget;
-    recovered.softResetting =
-        preserveSoftReset;
+    recovered.appliedLogZoom = preserveApplied;
+    recovered.targetLogZoom = preserveTarget;
+    recovered.softResetting = preserveSoftReset;
 
     g_pinch = recovered;
 
@@ -1554,11 +1169,9 @@ static void TickPinch()
     // Root HWND caching prevents repeated process-name lookups at 125 Hz.
     RefreshTargetAllowed();
 
-    const double now =
-        NowSeconds();
+    const double now = NowSeconds();
 
-    if (!g_enabled.load(
-            std::memory_order_relaxed))
+    if (!g_enabled.load(std::memory_order_relaxed))
     {
         if (g_pinch.active)
             EndActiveSegment();
@@ -1566,11 +1179,8 @@ static void TickPinch()
         return;
     }
 
-    if (!g_pinch.active &&
-        std::abs(
-            g_pinch.targetLogZoom -
-            g_pinch.appliedLogZoom) <=
-            Const::LogZoomEpsilon)
+    if (!g_pinch.active
+        && std::abs(g_pinch.targetLogZoom - g_pinch.appliedLogZoom) <= Const::LogZoomEpsilon)
     {
         if (g_pinch.softResetting)
         {
@@ -1588,128 +1198,77 @@ static void TickPinch()
             return;
     }
 
-    double dt =
-        now -
-        g_pinch.lastTickTime;
+    double dt = now - g_pinch.lastTickTime;
 
     g_pinch.lastTickTime = now;
 
-    dt =
-        std::clamp(
-            dt,
-            0.0,
-            0.050);
+    dt = std::clamp(dt, 0.0, 0.050);
 
-    const double desiredSegmentLogDelta =
-        g_pinch.targetLogZoom -
-        g_pinch.segmentBaseLogZoom;
+    const double desiredSegmentLogDelta = g_pinch.targetLogZoom - g_pinch.segmentBaseLogZoom;
 
     const double desiredDistance =
-        std::clamp(
-            Const::BaseDistance *
-                std::exp(
-                    desiredSegmentLogDelta),
-            Const::MinDistance,
-            Const::MaxDistance);
+        std::clamp(Const::BaseDistance * std::exp(desiredSegmentLogDelta), Const::MinDistance,
+                   Const::MaxDistance);
 
     AppConfig cfg;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         cfg = g_cfg;
     }
 
-    const double newDistance =
-        CalculateSmoothedDistance(
-            g_pinch.currentDistance,
-            desiredDistance,
-            dt,
-            g_pinch.softResetting,
-            cfg.curve);
+    const double newDistance = CalculateSmoothedDistance(g_pinch.currentDistance, desiredDistance,
+                                                         dt, g_pinch.softResetting, cfg.curve);
 
     POINT p1{};
     POINT p2{};
 
-    FingerPositionsForDistance(
-        newDistance,
-        p1,
-        p2);
+    FingerPositionsForDistance(newDistance, p1, p2);
 
-    const bool moved =
-        p1.x != g_pinch.lastP1.x ||
-        p1.y != g_pinch.lastP1.y ||
-        p2.x != g_pinch.lastP2.x ||
-        p2.y != g_pinch.lastP2.y;
+    const bool moved = p1.x != g_pinch.lastP1.x || p1.y != g_pinch.lastP1.y
+                       || p2.x != g_pinch.lastP2.x || p2.y != g_pinch.lastP2.y;
 
     if (moved)
     {
-        if (!InjectTouchpadFrame(
-                p1,
-                p2,
-                true))
+        if (!InjectTouchpadFrame(p1, p2, true))
         {
             RecoverAfterInjectionFailure();
             return;
         }
 
-        g_pinch.currentDistance =
-            newDistance;
+        g_pinch.currentDistance = newDistance;
 
         g_pinch.lastP1 = p1;
         g_pinch.lastP2 = p2;
 
-        const double segmentLog =
-            std::log(
-                g_pinch.currentDistance /
-                Const::BaseDistance);
+        const double segmentLog = std::log(g_pinch.currentDistance / Const::BaseDistance);
 
-        g_pinch.appliedLogZoom =
-            std::max(
-                0.0,
-                g_pinch.segmentBaseLogZoom +
-                segmentLog);
+        g_pinch.appliedLogZoom = std::max(0.0, g_pinch.segmentBaseLogZoom + segmentLog);
 
-        g_pinch.lastProgressTime =
-            now;
+        g_pinch.lastProgressTime = now;
     }
     else
     {
-        g_pinch.currentDistance =
-            newDistance;
+        g_pinch.currentDistance = newDistance;
     }
 
     const bool targetReached =
-        std::abs(
-            g_pinch.targetLogZoom -
-            g_pinch.appliedLogZoom) <=
-            Const::LogZoomEpsilon;
+        std::abs(g_pinch.targetLogZoom - g_pinch.appliedLogZoom) <= Const::LogZoomEpsilon;
 
     const bool atUpperLimit =
-        g_pinch.currentDistance >=
-        (Const::MaxDistance -
-         Const::DistanceEpsilon);
+        g_pinch.currentDistance >= (Const::MaxDistance - Const::DistanceEpsilon);
 
     const bool atLowerLimit =
-        g_pinch.currentDistance <=
-        (Const::MinDistance +
-         Const::DistanceEpsilon);
+        g_pinch.currentDistance <= (Const::MinDistance + Const::DistanceEpsilon);
 
     const bool stillNeedsIn =
-        g_pinch.targetLogZoom >
-        g_pinch.appliedLogZoom +
-        Const::LogZoomEpsilon;
+        g_pinch.targetLogZoom > g_pinch.appliedLogZoom + Const::LogZoomEpsilon;
 
     const bool stillNeedsOut =
-        g_pinch.targetLogZoom <
-        g_pinch.appliedLogZoom -
-        Const::LogZoomEpsilon;
+        g_pinch.targetLogZoom < g_pinch.appliedLogZoom - Const::LogZoomEpsilon;
 
-    if ((atUpperLimit &&
-         stillNeedsIn) ||
-        (atLowerLimit &&
-         stillNeedsOut))
+    if ((atUpperLimit && stillNeedsIn) || (atLowerLimit && stillNeedsOut))
     {
         EndActiveSegment();
         return;
@@ -1717,15 +1276,11 @@ static void TickPinch()
 
     if (targetReached)
     {
-        g_pinch.appliedLogZoom =
-            g_pinch.targetLogZoom;
+        g_pinch.appliedLogZoom = g_pinch.targetLogZoom;
 
-        const bool zoomModifierHeld =
-            ZoomModifierStillHeld();
+        const bool zoomModifierHeld = ZoomModifierStillHeld();
 
-        const bool targetStillAllowed =
-            g_targetAllowed.load(
-                std::memory_order_relaxed);
+        const bool targetStillAllowed = g_targetAllowed.load(std::memory_order_relaxed);
 
         // V3.1 slow-wheel behavior:
         //
@@ -1744,14 +1299,11 @@ static void TickPinch()
         //   - soft reset has completed, or
         //   - the zoom modifier is released/changed, or
         //   - the selected target is no longer a whitelisted application.
-        if (g_pinch.softResetting ||
-            !zoomModifierHeld ||
-            !targetStillAllowed)
+        if (g_pinch.softResetting || !zoomModifierHeld || !targetStillAllowed)
         {
             EndActiveSegment();
 
-            if (g_pinch.targetLogZoom <=
-                Const::LogZoomEpsilon)
+            if (g_pinch.targetLogZoom <= Const::LogZoomEpsilon)
             {
                 g_pinch.targetLogZoom = 0.0;
                 g_pinch.appliedLogZoom = 0.0;
@@ -1764,11 +1316,8 @@ static void TickPinch()
 
     // Watchdog is only a fallback for a genuinely orphaned gesture. Do not
     // interrupt a gesture the user is intentionally holding with Alt.
-    if (g_pinch.active &&
-        !ZoomModifierStillHeld() &&
-        (now -
-         g_pinch.lastProgressTime) >
-        Const::WatchdogSec)
+    if (g_pinch.active && !ZoomModifierStillHeld()
+        && (now - g_pinch.lastProgressTime) > Const::WatchdogSec)
     {
         EndActiveSegment();
     }
@@ -1785,11 +1334,9 @@ static UINT CurrentModifierMask()
 }
 
 
-static bool ExactModifiersDown(
-    UINT expected)
+static bool ExactModifiersDown(UINT expected)
 {
-    return CurrentModifierMask() ==
-           expected;
+    return CurrentModifierMask() == expected;
 }
 
 
@@ -1797,120 +1344,72 @@ static bool ExactModifiersDown(
 // Mouse hook
 // ============================================================================
 
-static LRESULT CALLBACK LowLevelMouseProc(
-    int nCode,
-    WPARAM wParam,
-    LPARAM lParam)
+static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     if (nCode < 0)
     {
-        return CallNextHookEx(
-            g_mouseHook,
-            nCode,
-            wParam,
-            lParam);
+        return CallNextHookEx(g_mouseHook, nCode, wParam, lParam);
     }
 
-    const auto* info =
-        reinterpret_cast<
-            const MSLLHOOKSTRUCT*>(
-                lParam);
+    const auto* info = reinterpret_cast<const MSLLHOOKSTRUCT*>(lParam);
 
     // If we swallowed a middle-button DOWN, always swallow the matching UP,
     // even if the cursor has since left the whitelisted window or the tool
     // was disabled in between. Otherwise another window would receive an
     // orphaned WM_MBUTTONUP.
-    if (nCode == HC_ACTION &&
-        wParam == WM_MBUTTONUP &&
-        g_swallowMiddleUp.exchange(
-            false,
-            std::memory_order_relaxed))
+    if (nCode == HC_ACTION && wParam == WM_MBUTTONUP
+        && g_swallowMiddleUp.exchange(false, std::memory_order_relaxed))
     {
         return 1;
     }
 
-    if (nCode == HC_ACTION &&
-        info &&
-        (info->flags &
-         LLMHF_INJECTED) == 0 &&
-        g_enabled.load(
-            std::memory_order_relaxed) &&
-        g_targetAllowed.load(
-            std::memory_order_relaxed))
+    if (nCode == HC_ACTION && info && (info->flags & LLMHF_INJECTED) == 0
+        && g_enabled.load(std::memory_order_relaxed)
+        && g_targetAllowed.load(std::memory_order_relaxed))
     {
         AppConfig cfg;
 
         {
-            std::lock_guard<std::mutex> lock(
-                g_cfgMutex);
+            std::lock_guard<std::mutex> lock(g_cfgMutex);
 
             cfg = g_cfg;
         }
 
-        if (wParam == WM_MOUSEWHEEL &&
-            ExactModifiersDown(
-                cfg.zoomModifiers))
+        if (wParam == WM_MOUSEWHEEL && ExactModifiersDown(cfg.zoomModifiers))
         {
-            const short delta =
-                GET_WHEEL_DELTA_WPARAM(
-                    info->mouseData);
+            const short delta = GET_WHEEL_DELTA_WPARAM(info->mouseData);
 
-            PostMessageW(
-                g_mainWindow,
-                Const::WM_APP_WHEEL,
-                static_cast<WPARAM>(
-                    static_cast<USHORT>(
-                        delta)),
-                0);
+            PostMessageW(g_mainWindow, Const::WM_APP_WHEEL,
+                         static_cast<WPARAM>(static_cast<USHORT>(delta)), 0);
 
             return 1;
         }
 
-        if (wParam ==
-            WM_MBUTTONDOWN)
+        if (wParam == WM_MBUTTONDOWN)
         {
-            const UINT current =
-                CurrentModifierMask();
+            const UINT current = CurrentModifierMask();
 
-            if (current ==
-                cfg.hardResetModifiers)
+            if (current == cfg.hardResetModifiers)
             {
-                g_swallowMiddleUp.store(
-                    true,
-                    std::memory_order_relaxed);
+                g_swallowMiddleUp.store(true, std::memory_order_relaxed);
 
-                PostMessageW(
-                    g_mainWindow,
-                    Const::WM_APP_HARD_RESET,
-                    0,
-                    0);
+                PostMessageW(g_mainWindow, Const::WM_APP_HARD_RESET, 0, 0);
 
                 return 1;
             }
 
-            if (current ==
-                cfg.resetModifiers)
+            if (current == cfg.resetModifiers)
             {
-                g_swallowMiddleUp.store(
-                    true,
-                    std::memory_order_relaxed);
+                g_swallowMiddleUp.store(true, std::memory_order_relaxed);
 
-                PostMessageW(
-                    g_mainWindow,
-                    Const::WM_APP_SOFT_RESET,
-                    0,
-                    0);
+                PostMessageW(g_mainWindow, Const::WM_APP_SOFT_RESET, 0, 0);
 
                 return 1;
             }
         }
     }
 
-    return CallNextHookEx(
-        g_mouseHook,
-        nCode,
-        wParam,
-        lParam);
+    return CallNextHookEx(g_mouseHook, nCode, wParam, lParam);
 }
 
 
@@ -1918,8 +1417,7 @@ static LRESULT CALLBACK LowLevelMouseProc(
 // Exit hotkey conversions
 // ============================================================================
 
-static UINT HotKeyControlFlagsToMod(
-    BYTE flags)
+static UINT HotKeyControlFlagsToMod(BYTE flags)
 {
     UINT mods = 0;
 
@@ -1936,8 +1434,7 @@ static UINT HotKeyControlFlagsToMod(
 }
 
 
-static BYTE ModToHotKeyControlFlags(
-    UINT mods)
+static BYTE ModToHotKeyControlFlags(UINT mods)
 {
     BYTE flags = 0;
 
@@ -1956,15 +1453,12 @@ static BYTE ModToHotKeyControlFlags(
 
 static bool RegisterExitHotkey()
 {
-    UnregisterHotKey(
-        g_mainWindow,
-        Const::ExitHotkeyId);
+    UnregisterHotKey(g_mainWindow, Const::ExitHotkeyId);
 
     AppConfig cfg;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         cfg = g_cfg;
     }
@@ -1972,14 +1466,10 @@ static bool RegisterExitHotkey()
     if (cfg.exitVk == 0)
         return true;
 
-    return RegisterHotKey(
-        g_mainWindow,
-        Const::ExitHotkeyId,
-        cfg.exitMods |
-        MOD_NOREPEAT,
-        cfg.exitVk) != FALSE;
+    return RegisterHotKey(g_mainWindow, Const::ExitHotkeyId, cfg.exitMods | MOD_NOREPEAT,
+                          cfg.exitVk)
+           != FALSE;
 }
-
 
 
 // ============================================================================
@@ -1991,70 +1481,44 @@ static void UpdateTrayTooltip()
     AppConfig cfg;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         cfg = g_cfg;
     }
 
-    const bool zh =
-        cfg.language == UiLanguage::Chinese;
+    const bool zh = cfg.language == UiLanguage::Chinese;
 
     const wchar_t* state =
-        cfg.enabled
-        ? (zh ? L"已启用" : L"Enabled")
-        : (zh ? L"已禁用" : L"Disabled");
+        cfg.enabled ? (zh ? L"已启用" : L"Enabled") : (zh ? L"已禁用" : L"Disabled");
 
-    swprintf_s(
-        g_nid.szTip,
-        L"Continuous Pinch V3 - %s",
-        state);
+    swprintf_s(g_nid.szTip, L"Continuous Pinch V3 - %s", state);
 
     if (g_nid.hWnd)
     {
-        Shell_NotifyIconW(
-            NIM_MODIFY,
-            &g_nid);
+        Shell_NotifyIconW(NIM_MODIFY, &g_nid);
     }
 }
 
 
 static bool AddTrayIcon()
 {
-    ZeroMemory(
-        &g_nid,
-        sizeof(g_nid));
+    ZeroMemory(&g_nid, sizeof(g_nid));
 
-    g_nid.cbSize =
-        sizeof(g_nid);
+    g_nid.cbSize = sizeof(g_nid);
 
-    g_nid.hWnd =
-        g_mainWindow;
+    g_nid.hWnd = g_mainWindow;
 
-    g_nid.uID =
-        Const::TrayIconId;
+    g_nid.uID = Const::TrayIconId;
 
-    g_nid.uFlags =
-        NIF_MESSAGE |
-        NIF_ICON |
-        NIF_TIP;
+    g_nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 
-    g_nid.uCallbackMessage =
-        Const::WM_TRAY;
+    g_nid.uCallbackMessage = Const::WM_TRAY;
 
-    g_nid.hIcon =
-        LoadIconW(
-            GetModuleHandleW(nullptr),
-            MAKEINTRESOURCEW(
-                IDI_APP_ICON));
+    g_nid.hIcon = LoadIconW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_APP_ICON));
 
-    wcscpy_s(
-        g_nid.szTip,
-        L"Continuous Pinch V3");
+    wcscpy_s(g_nid.szTip, L"Continuous Pinch V3");
 
-    return Shell_NotifyIconW(
-        NIM_ADD,
-        &g_nid) != FALSE;
+    return Shell_NotifyIconW(NIM_ADD, &g_nid) != FALSE;
 }
 
 
@@ -2062,9 +1526,7 @@ static void RemoveTrayIcon()
 {
     if (g_nid.hWnd)
     {
-        Shell_NotifyIconW(
-            NIM_DELETE,
-            &g_nid);
+        Shell_NotifyIconW(NIM_DELETE, &g_nid);
 
         g_nid.hWnd = nullptr;
     }
@@ -2073,8 +1535,7 @@ static void RemoveTrayIcon()
 
 static void ShowTrayMenu()
 {
-    HMENU menu =
-        CreatePopupMenu();
+    HMENU menu = CreatePopupMenu();
 
     if (!menu)
         return;
@@ -2082,98 +1543,45 @@ static void ShowTrayMenu()
     AppConfig cfg;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         cfg = g_cfg;
     }
 
-    AppendMenuW(
-        menu,
-        MF_STRING |
-        (cfg.enabled
-            ? MF_CHECKED
-            : MF_UNCHECKED),
-        Const::IDM_TRAY_ENABLE,
-        L10n(L"启用", L"Enabled"));
+    AppendMenuW(menu, MF_STRING | (cfg.enabled ? MF_CHECKED : MF_UNCHECKED), Const::IDM_TRAY_ENABLE,
+                L10n(L"启用", L"Enabled"));
 
-    AppendMenuW(
-        menu,
-        MF_SEPARATOR,
-        0,
-        nullptr);
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
 
-    AppendMenuW(
-        menu,
-        MF_STRING,
-        Const::IDM_TRAY_SETTINGS,
-        L10n(L"设置...", L"Settings..."));
+    AppendMenuW(menu, MF_STRING, Const::IDM_TRAY_SETTINGS, L10n(L"设置...", L"Settings..."));
 
-    AppendMenuW(
-        menu,
-        MF_STRING,
-        Const::IDM_TRAY_RESET,
-        L10n(L"回到 100% 基准", L"Return to 100% baseline"));
+    AppendMenuW(menu, MF_STRING, Const::IDM_TRAY_RESET,
+                L10n(L"回到 100% 基准", L"Return to 100% baseline"));
 
-    AppendMenuW(
-        menu,
-        MF_STRING,
-        Const::IDM_TRAY_HARDRESET,
-        L10n(L"硬复位触控板", L"Hard reset touchpad"));
+    AppendMenuW(menu, MF_STRING, Const::IDM_TRAY_HARDRESET,
+                L10n(L"硬复位触控板", L"Hard reset touchpad"));
 
-    AppendMenuW(
-        menu,
-        MF_SEPARATOR,
-        0,
-        nullptr);
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
 
-    AppendMenuW(
-        menu,
-        MF_STRING |
-        (cfg.startWithWindows
-            ? MF_CHECKED
-            : MF_UNCHECKED),
-        Const::IDM_TRAY_STARTUP,
-        L10n(L"开机启动", L"Start with Windows"));
+    AppendMenuW(menu, MF_STRING | (cfg.startWithWindows ? MF_CHECKED : MF_UNCHECKED),
+                Const::IDM_TRAY_STARTUP, L10n(L"开机启动", L"Start with Windows"));
 
-    AppendMenuW(
-        menu,
-        MF_SEPARATOR,
-        0,
-        nullptr);
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
 
-    AppendMenuW(
-        menu,
-        MF_STRING,
-        Const::IDM_TRAY_EXIT,
-        L10n(L"退出", L"Exit"));
+    AppendMenuW(menu, MF_STRING, Const::IDM_TRAY_EXIT, L10n(L"退出", L"Exit"));
 
     POINT pt{};
     GetCursorPos(&pt);
 
-    SetForegroundWindow(
-        g_mainWindow);
+    SetForegroundWindow(g_mainWindow);
 
-    TrackPopupMenu(
-        menu,
-        TPM_RIGHTBUTTON |
-        TPM_BOTTOMALIGN,
-        pt.x,
-        pt.y,
-        0,
-        g_mainWindow,
-        nullptr);
+    TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_BOTTOMALIGN, pt.x, pt.y, 0, g_mainWindow, nullptr);
 
     // Documented workaround (KB135788): make sure the menu closes correctly
     // and a second right-click shows it again.
-    PostMessageW(
-        g_mainWindow,
-        WM_NULL,
-        0,
-        0);
+    PostMessageW(g_mainWindow, WM_NULL, 0, 0);
 
-    DestroyMenu(
-        menu);
+    DestroyMenu(menu);
 }
 
 
@@ -2183,47 +1591,20 @@ static void ShowTrayMenu()
 
 static HFONT GetDefaultGuiFont()
 {
-    return static_cast<HFONT>(
-        GetStockObject(
-            DEFAULT_GUI_FONT));
+    return static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
 }
 
 
 static void SetControlFont(HWND hwnd)
 {
-    SendMessageW(
-        hwnd,
-        WM_SETFONT,
-        reinterpret_cast<WPARAM>(
-            GetDefaultGuiFont()),
-        TRUE);
+    SendMessageW(hwnd, WM_SETFONT, reinterpret_cast<WPARAM>(GetDefaultGuiFont()), TRUE);
 }
 
 
-static HWND AddStatic(
-    HWND parent,
-    const wchar_t* text,
-    int x,
-    int y,
-    int w,
-    int h)
+static HWND AddStatic(HWND parent, const wchar_t* text, int x, int y, int w, int h)
 {
-    HWND hwnd =
-        CreateWindowExW(
-            0,
-            L"STATIC",
-            text,
-            WS_CHILD |
-            WS_VISIBLE,
-            x,
-            y,
-            w,
-            h,
-            parent,
-            nullptr,
-            GetModuleHandleW(
-                nullptr),
-            nullptr);
+    HWND hwnd = CreateWindowExW(0, L"STATIC", text, WS_CHILD | WS_VISIBLE, x, y, w, h, parent,
+                                nullptr, GetModuleHandleW(nullptr), nullptr);
 
     SetControlFont(hwnd);
 
@@ -2231,35 +1612,12 @@ static HWND AddStatic(
 }
 
 
-static HWND AddCombo(
-    HWND parent,
-    int id,
-    int x,
-    int y,
-    int w,
-    int h)
+static HWND AddCombo(HWND parent, int id, int x, int y, int w, int h)
 {
-    HWND hwnd =
-        CreateWindowExW(
-            0,
-            L"COMBOBOX",
-            L"",
-            WS_CHILD |
-            WS_VISIBLE |
-            WS_TABSTOP |
-            CBS_DROPDOWNLIST |
-            WS_VSCROLL,
-            x,
-            y,
-            w,
-            h,
-            parent,
-            reinterpret_cast<HMENU>(
-                static_cast<INT_PTR>(
-                    id)),
-            GetModuleHandleW(
-                nullptr),
-            nullptr);
+    HWND hwnd = CreateWindowExW(
+        0, L"COMBOBOX", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST | WS_VSCROLL, x,
+        y, w, h, parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)),
+        GetModuleHandleW(nullptr), nullptr);
 
     SetControlFont(hwnd);
 
@@ -2267,9 +1625,7 @@ static HWND AddCombo(
 }
 
 
-static void FillModifierCombo(
-    HWND combo,
-    UINT selectedMask)
+static void FillModifierCombo(HWND combo, UINT selectedMask)
 {
     struct Item
     {
@@ -2277,223 +1633,120 @@ static void FillModifierCombo(
         UINT mask;
     };
 
-    const Item items[] =
-    {
-        { L"Alt", MM_ALT },
-        { L"Ctrl", MM_CTRL },
-        { L"Shift", MM_SHIFT },
-        { L"Ctrl + Alt", MM_CTRL | MM_ALT },
-        { L"Ctrl + Shift", MM_CTRL | MM_SHIFT },
-        { L"Alt + Shift", MM_ALT | MM_SHIFT },
-        { L"Ctrl + Alt + Shift", MM_CTRL | MM_ALT | MM_SHIFT }
-    };
+    const Item items[] = {{L"Alt", MM_ALT},
+                          {L"Ctrl", MM_CTRL},
+                          {L"Shift", MM_SHIFT},
+                          {L"Ctrl + Alt", MM_CTRL | MM_ALT},
+                          {L"Ctrl + Shift", MM_CTRL | MM_SHIFT},
+                          {L"Alt + Shift", MM_ALT | MM_SHIFT},
+                          {L"Ctrl + Alt + Shift", MM_CTRL | MM_ALT | MM_SHIFT}};
 
-    SendMessageW(
-        combo,
-        CB_RESETCONTENT,
-        0,
-        0);
+    SendMessageW(combo, CB_RESETCONTENT, 0, 0);
 
     int selectIndex = 0;
 
-    for (int i = 0;
-         i <
-         static_cast<int>(
-             sizeof(items) /
-             sizeof(items[0]));
-         ++i)
+    for (int i = 0; i < static_cast<int>(sizeof(items) / sizeof(items[0])); ++i)
     {
         const LRESULT index =
-            SendMessageW(
-                combo,
-                CB_ADDSTRING,
-                0,
-                reinterpret_cast<LPARAM>(
-                    items[i].text));
+            SendMessageW(combo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(items[i].text));
 
-        SendMessageW(
-            combo,
-            CB_SETITEMDATA,
-            index,
-            items[i].mask);
+        SendMessageW(combo, CB_SETITEMDATA, index, items[i].mask);
 
-        if (items[i].mask ==
-            selectedMask)
+        if (items[i].mask == selectedMask)
         {
-            selectIndex =
-                static_cast<int>(
-                    index);
+            selectIndex = static_cast<int>(index);
         }
     }
 
-    SendMessageW(
-        combo,
-        CB_SETCURSEL,
-        selectIndex,
-        0);
+    SendMessageW(combo, CB_SETCURSEL, selectIndex, 0);
 }
 
 
-static UINT GetModifierComboValue(
-    HWND combo)
+static UINT GetModifierComboValue(HWND combo)
 {
-    const LRESULT index =
-        SendMessageW(
-            combo,
-            CB_GETCURSEL,
-            0,
-            0);
+    const LRESULT index = SendMessageW(combo, CB_GETCURSEL, 0, 0);
 
-    if (index ==
-        CB_ERR)
+    if (index == CB_ERR)
     {
         return MM_ALT;
     }
 
-    const LRESULT data =
-        SendMessageW(
-            combo,
-            CB_GETITEMDATA,
-            index,
-            0);
+    const LRESULT data = SendMessageW(combo, CB_GETITEMDATA, index, 0);
 
-    return static_cast<UINT>(
-        data);
+    return static_cast<UINT>(data);
 }
 
 
-static void UpdateSensitivityLabel(
-    HWND settings)
+static void UpdateSensitivityLabel(HWND settings)
 {
-    HWND slider =
-        GetDlgItem(
-            settings,
-            Const::IDC_SENS_SLIDER);
+    HWND slider = GetDlgItem(settings, Const::IDC_SENS_SLIDER);
 
-    HWND label =
-        GetDlgItem(
-            settings,
-            Const::IDC_SENS_VALUE);
+    HWND label = GetDlgItem(settings, Const::IDC_SENS_VALUE);
 
-    const int pos =
-        static_cast<int>(
-            SendMessageW(
-                slider,
-                TBM_GETPOS,
-                0,
-                0));
+    const int pos = static_cast<int>(SendMessageW(slider, TBM_GETPOS, 0, 0));
 
-    const double logValue =
-        static_cast<double>(
-            pos) /
-        1000.0;
+    const double logValue = static_cast<double>(pos) / 1000.0;
 
-    const double percent =
-        (std::exp(
-             logValue) -
-         1.0) *
-        100.0;
+    const double percent = (std::exp(logValue) - 1.0) * 100.0;
 
     wchar_t text[128]{};
 
-    swprintf_s(
-        text,
-        L10n(L"每格滚轮 %.1f%%", L"%.1f%% per notch"),
-        percent);
+    swprintf_s(text, L10n(L"每格滚轮 %.1f%%", L"%.1f%% per notch"), percent);
 
-    SetWindowTextW(
-        label,
-        text);
+    SetWindowTextW(label, text);
 
     // Real-time: sensitivity changes immediately while the slider moves.
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
-        g_cfg.sensitivityLog =
-            logValue;
+        g_cfg.sensitivityLog = logValue;
     }
 }
 
 
-static void UpdateCurveRealtime(
-    HWND settings)
+static void UpdateCurveRealtime(HWND settings)
 {
-    HWND combo =
-        GetDlgItem(
-            settings,
-            Const::IDC_CURVE);
+    HWND combo = GetDlgItem(settings, Const::IDC_CURVE);
 
-    const LRESULT index =
-        SendMessageW(
-            combo,
-            CB_GETCURSEL,
-            0,
-            0);
+    const LRESULT index = SendMessageW(combo, CB_GETCURSEL, 0, 0);
 
-    if (index >= 0 &&
-        index <= 3)
+    if (index >= 0 && index <= 3)
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
-        g_cfg.curve =
-            static_cast<
-                SmoothingCurve>(
-                    index);
+        g_cfg.curve = static_cast<SmoothingCurve>(index);
     }
 }
-
 
 
 static void ApplySettingsLanguage(HWND settings)
 {
-    const bool zh =
-        CurrentLanguage() == UiLanguage::Chinese;
+    const bool zh = CurrentLanguage() == UiLanguage::Chinese;
 
-    SetWindowTextW(
-        settings,
-        zh
-            ? L"Continuous Pinch V3 设置"
-            : L"Continuous Pinch V3 Settings");
+    SetWindowTextW(settings, zh ? L"Continuous Pinch V3 设置" : L"Continuous Pinch V3 Settings");
 
-    SetWindowTextW(
-        GetDlgItem(settings, Const::IDC_ENABLED),
-        zh
-            ? L"启用捏合缩放"
-            : L"Enable pinch zoom");
+    SetWindowTextW(GetDlgItem(settings, Const::IDC_ENABLED),
+                   zh ? L"启用捏合缩放" : L"Enable pinch zoom");
 
-    SetWindowTextW(
-        GetDlgItem(settings, Const::IDC_STARTUP),
-        zh
-            ? L"开机启动"
-            : L"Start with Windows");
+    SetWindowTextW(GetDlgItem(settings, Const::IDC_STARTUP),
+                   zh ? L"开机启动" : L"Start with Windows");
 
-    SetWindowTextW(
-        GetDlgItem(settings, Const::IDC_DEFAULTS),
-        zh ? L"恢复默认" : L"Defaults");
+    SetWindowTextW(GetDlgItem(settings, Const::IDC_DEFAULTS), zh ? L"恢复默认" : L"Defaults");
 
-    SetWindowTextW(
-        GetDlgItem(settings, Const::IDC_APPLY),
-        zh ? L"应用" : L"Apply");
+    SetWindowTextW(GetDlgItem(settings, Const::IDC_APPLY), zh ? L"应用" : L"Apply");
 
-    SetWindowTextW(
-        GetDlgItem(settings, Const::IDC_CLOSE),
-        zh ? L"关闭" : L"Close");
+    SetWindowTextW(GetDlgItem(settings, Const::IDC_CLOSE), zh ? L"关闭" : L"Close");
 
     HWND curve = GetDlgItem(settings, Const::IDC_CURVE);
-    const LRESULT currentCurve =
-        SendMessageW(curve, CB_GETCURSEL, 0, 0);
+    const LRESULT currentCurve = SendMessageW(curve, CB_GETCURSEL, 0, 0);
 
     SendMessageW(curve, CB_RESETCONTENT, 0, 0);
     SendMessageW(curve, CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(zh ? L"直接 / 即时" : L"Direct / immediate"));
+                 reinterpret_cast<LPARAM>(zh ? L"直接 / 即时" : L"Direct / immediate"));
+    SendMessageW(curve, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(zh ? L"线性" : L"Linear"));
+    SendMessageW(curve, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(zh ? L"指数" : L"Exponential"));
     SendMessageW(curve, CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(zh ? L"线性" : L"Linear"));
-    SendMessageW(curve, CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(zh ? L"指数" : L"Exponential"));
-    SendMessageW(curve, CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(zh ? L"自适应（推荐）" : L"Adaptive (recommended)"));
+                 reinterpret_cast<LPARAM>(zh ? L"自适应（推荐）" : L"Adaptive (recommended)"));
 
     if (currentCurve >= 0 && currentCurve <= 3)
         SendMessageW(curve, CB_SETCURSEL, currentCurve, 0);
@@ -2502,31 +1755,22 @@ static void ApplySettingsLanguage(HWND settings)
     if (language)
     {
         SendMessageW(language, CB_RESETCONTENT, 0, 0);
-        SendMessageW(language, CB_ADDSTRING, 0,
-            reinterpret_cast<LPARAM>(L"中文"));
-        SendMessageW(language, CB_ADDSTRING, 0,
-            reinterpret_cast<LPARAM>(L"English"));
-        SendMessageW(language, CB_SETCURSEL,
-            CurrentLanguage() == UiLanguage::Chinese ? 0 : 1, 0);
+        SendMessageW(language, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"中文"));
+        SendMessageW(language, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"English"));
+        SendMessageW(language, CB_SETCURSEL, CurrentLanguage() == UiLanguage::Chinese ? 0 : 1, 0);
     }
 
     HWND targetMode = GetDlgItem(settings, Const::IDC_TARGET_MODE);
     if (targetMode)
     {
-        const LRESULT currentMode =
-            SendMessageW(targetMode, CB_GETCURSEL, 0, 0);
+        const LRESULT currentMode = SendMessageW(targetMode, CB_GETCURSEL, 0, 0);
 
         SendMessageW(targetMode, CB_RESETCONTENT, 0, 0);
         SendMessageW(targetMode, CB_ADDSTRING, 0,
-            reinterpret_cast<LPARAM>(
-                zh
-                    ? L"鼠标悬停窗口（推荐）"
-                    : L"Window under mouse (recommended)"));
+                     reinterpret_cast<LPARAM>(zh ? L"鼠标悬停窗口（推荐）"
+                                                 : L"Window under mouse (recommended)"));
         SendMessageW(targetMode, CB_ADDSTRING, 0,
-            reinterpret_cast<LPARAM>(
-                zh
-                    ? L"当前前台窗口"
-                    : L"Foreground window"));
+                     reinterpret_cast<LPARAM>(zh ? L"当前前台窗口" : L"Foreground window"));
 
         if (currentMode >= 0 && currentMode <= 1)
             SendMessageW(targetMode, CB_SETCURSEL, currentMode, 0);
@@ -2536,334 +1780,133 @@ static void ApplySettingsLanguage(HWND settings)
     UpdateSensitivityLabel(settings);
 }
 
-static void PopulateSettingsFromConfig(
-    HWND settings,
-    const AppConfig& cfg)
+static void PopulateSettingsFromConfig(HWND settings, const AppConfig& cfg)
 {
-    SendMessageW(
-        GetDlgItem(
-            settings,
-            Const::IDC_ENABLED),
-        BM_SETCHECK,
-        cfg.enabled
-            ? BST_CHECKED
-            : BST_UNCHECKED,
-        0);
+    SendMessageW(GetDlgItem(settings, Const::IDC_ENABLED), BM_SETCHECK,
+                 cfg.enabled ? BST_CHECKED : BST_UNCHECKED, 0);
 
-    HWND slider =
-        GetDlgItem(
-            settings,
-            Const::IDC_SENS_SLIDER);
+    HWND slider = GetDlgItem(settings, Const::IDC_SENS_SLIDER);
 
-    SendMessageW(
-        slider,
-        TBM_SETRANGE,
-        TRUE,
-        MAKELPARAM(
-            20,
-            180));
+    SendMessageW(slider, TBM_SETRANGE, TRUE, MAKELPARAM(20, 180));
 
-    SendMessageW(
-        slider,
-        TBM_SETTICFREQ,
-        10,
-        0);
+    SendMessageW(slider, TBM_SETTICFREQ, 10, 0);
 
-    SendMessageW(
-        slider,
-        TBM_SETPOS,
-        TRUE,
-        static_cast<LPARAM>(
-            std::lround(
-                cfg.sensitivityLog *
-                1000.0)));
+    SendMessageW(slider, TBM_SETPOS, TRUE,
+                 static_cast<LPARAM>(std::lround(cfg.sensitivityLog * 1000.0)));
 
-    UpdateSensitivityLabel(
-        settings);
+    UpdateSensitivityLabel(settings);
 
-    HWND curve =
-        GetDlgItem(
-            settings,
-            Const::IDC_CURVE);
+    HWND curve = GetDlgItem(settings, Const::IDC_CURVE);
 
-    SendMessageW(
-        curve,
-        CB_RESETCONTENT,
-        0,
-        0);
+    SendMessageW(curve, CB_RESETCONTENT, 0, 0);
 
-    SendMessageW(
-        curve,
-        CB_ADDSTRING,
-        0,
-        reinterpret_cast<LPARAM>(
-            L"Direct / immediate"));
+    SendMessageW(curve, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"Direct / immediate"));
 
-    SendMessageW(
-        curve,
-        CB_ADDSTRING,
-        0,
-        reinterpret_cast<LPARAM>(
-            L"Linear"));
+    SendMessageW(curve, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"Linear"));
 
-    SendMessageW(
-        curve,
-        CB_ADDSTRING,
-        0,
-        reinterpret_cast<LPARAM>(
-            L"Exponential"));
+    SendMessageW(curve, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"Exponential"));
 
-    SendMessageW(
-        curve,
-        CB_ADDSTRING,
-        0,
-        reinterpret_cast<LPARAM>(
-            L"Adaptive (recommended)"));
+    SendMessageW(curve, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"Adaptive (recommended)"));
 
-    SendMessageW(
-        curve,
-        CB_SETCURSEL,
-        static_cast<WPARAM>(
-            cfg.curve),
-        0);
+    SendMessageW(curve, CB_SETCURSEL, static_cast<WPARAM>(cfg.curve), 0);
 
-    const std::wstring whitelistUi =
-        WhitelistForUi(
-            cfg.whitelist);
+    const std::wstring whitelistUi = WhitelistForUi(cfg.whitelist);
 
-    SetWindowTextW(
-        GetDlgItem(
-            settings,
-            Const::IDC_WHITELIST),
-        whitelistUi.c_str());
+    SetWindowTextW(GetDlgItem(settings, Const::IDC_WHITELIST), whitelistUi.c_str());
 
-    FillModifierCombo(
-        GetDlgItem(
-            settings,
-            Const::IDC_ZOOM_MOD),
-        cfg.zoomModifiers);
+    FillModifierCombo(GetDlgItem(settings, Const::IDC_ZOOM_MOD), cfg.zoomModifiers);
 
-    FillModifierCombo(
-        GetDlgItem(
-            settings,
-            Const::IDC_RESET_MOD),
-        cfg.resetModifiers);
+    FillModifierCombo(GetDlgItem(settings, Const::IDC_RESET_MOD), cfg.resetModifiers);
 
-    FillModifierCombo(
-        GetDlgItem(
-            settings,
-            Const::IDC_HARDRESET_MOD),
-        cfg.hardResetModifiers);
+    FillModifierCombo(GetDlgItem(settings, Const::IDC_HARDRESET_MOD), cfg.hardResetModifiers);
 
     const WORD hotkeyWord =
-        MAKEWORD(
-            static_cast<BYTE>(
-                cfg.exitVk),
-            ModToHotKeyControlFlags(
-                cfg.exitMods));
+        MAKEWORD(static_cast<BYTE>(cfg.exitVk), ModToHotKeyControlFlags(cfg.exitMods));
 
-    SendMessageW(
-        GetDlgItem(
-            settings,
-            Const::IDC_EXIT_HOTKEY),
-        HKM_SETHOTKEY,
-        hotkeyWord,
-        0);
+    SendMessageW(GetDlgItem(settings, Const::IDC_EXIT_HOTKEY), HKM_SETHOTKEY, hotkeyWord, 0);
 
-    SendMessageW(
-        GetDlgItem(
-            settings,
-            Const::IDC_STARTUP),
-        BM_SETCHECK,
-        cfg.startWithWindows
-            ? BST_CHECKED
-            : BST_UNCHECKED,
-        0);
+    SendMessageW(GetDlgItem(settings, Const::IDC_STARTUP), BM_SETCHECK,
+                 cfg.startWithWindows ? BST_CHECKED : BST_UNCHECKED, 0);
 
-    SendMessageW(
-        GetDlgItem(
-            settings,
-            Const::IDC_LANGUAGE),
-        CB_SETCURSEL,
-        cfg.language == UiLanguage::Chinese ? 0 : 1,
-        0);
+    SendMessageW(GetDlgItem(settings, Const::IDC_LANGUAGE), CB_SETCURSEL,
+                 cfg.language == UiLanguage::Chinese ? 0 : 1, 0);
 
-    SendMessageW(
-        GetDlgItem(
-            settings,
-            Const::IDC_TARGET_MODE),
-        CB_SETCURSEL,
-        static_cast<WPARAM>(
-            cfg.targetMode),
-        0);
+    SendMessageW(GetDlgItem(settings, Const::IDC_TARGET_MODE), CB_SETCURSEL,
+                 static_cast<WPARAM>(cfg.targetMode), 0);
 
     ApplySettingsLanguage(settings);
 }
 
 
-static bool ApplySettingsFromWindow(
-    HWND settings,
-    bool showErrors)
+static bool ApplySettingsFromWindow(HWND settings, bool showErrors)
 {
     AppConfig newCfg;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         newCfg = g_committedCfg;
     }
 
     newCfg.enabled =
-        SendMessageW(
-            GetDlgItem(
-                settings,
-                Const::IDC_ENABLED),
-            BM_GETCHECK,
-            0,
-            0) ==
-        BST_CHECKED;
+        SendMessageW(GetDlgItem(settings, Const::IDC_ENABLED), BM_GETCHECK, 0, 0) == BST_CHECKED;
 
-    const int sensPos =
-        static_cast<int>(
-            SendMessageW(
-                GetDlgItem(
-                    settings,
-                    Const::IDC_SENS_SLIDER),
-                TBM_GETPOS,
-                0,
-                0));
+    const int sensPos = static_cast<int>(
+        SendMessageW(GetDlgItem(settings, Const::IDC_SENS_SLIDER), TBM_GETPOS, 0, 0));
 
-    newCfg.sensitivityLog =
-        std::clamp(
-            static_cast<double>(
-                sensPos) /
-                1000.0,
-            0.020,
-            0.180);
+    newCfg.sensitivityLog = std::clamp(static_cast<double>(sensPos) / 1000.0, 0.020, 0.180);
 
     const LRESULT curveIndex =
-        SendMessageW(
-            GetDlgItem(
-                settings,
-                Const::IDC_CURVE),
-            CB_GETCURSEL,
-            0,
-            0);
+        SendMessageW(GetDlgItem(settings, Const::IDC_CURVE), CB_GETCURSEL, 0, 0);
 
-    if (curveIndex >= 0 &&
-        curveIndex <= 3)
+    if (curveIndex >= 0 && curveIndex <= 3)
     {
-        newCfg.curve =
-            static_cast<
-                SmoothingCurve>(
-                    curveIndex);
+        newCfg.curve = static_cast<SmoothingCurve>(curveIndex);
     }
 
-    newCfg.zoomModifiers =
-        GetModifierComboValue(
-            GetDlgItem(
-                settings,
-                Const::IDC_ZOOM_MOD));
+    newCfg.zoomModifiers = GetModifierComboValue(GetDlgItem(settings, Const::IDC_ZOOM_MOD));
 
-    newCfg.resetModifiers =
-        GetModifierComboValue(
-            GetDlgItem(
-                settings,
-                Const::IDC_RESET_MOD));
+    newCfg.resetModifiers = GetModifierComboValue(GetDlgItem(settings, Const::IDC_RESET_MOD));
 
     newCfg.hardResetModifiers =
-        GetModifierComboValue(
-            GetDlgItem(
-                settings,
-                Const::IDC_HARDRESET_MOD));
+        GetModifierComboValue(GetDlgItem(settings, Const::IDC_HARDRESET_MOD));
 
-    const WORD hotkey =
-        static_cast<WORD>(
-            SendMessageW(
-                GetDlgItem(
-                    settings,
-                    Const::IDC_EXIT_HOTKEY),
-                HKM_GETHOTKEY,
-                0,
-                0));
+    const WORD hotkey = static_cast<WORD>(
+        SendMessageW(GetDlgItem(settings, Const::IDC_EXIT_HOTKEY), HKM_GETHOTKEY, 0, 0));
 
-    newCfg.exitVk =
-        LOBYTE(
-            hotkey);
+    newCfg.exitVk = LOBYTE(hotkey);
 
-    newCfg.exitMods =
-        HotKeyControlFlagsToMod(
-            HIBYTE(
-                hotkey));
+    newCfg.exitMods = HotKeyControlFlagsToMod(HIBYTE(hotkey));
 
     newCfg.startWithWindows =
-        SendMessageW(
-            GetDlgItem(
-                settings,
-                Const::IDC_STARTUP),
-            BM_GETCHECK,
-            0,
-            0) ==
-        BST_CHECKED;
+        SendMessageW(GetDlgItem(settings, Const::IDC_STARTUP), BM_GETCHECK, 0, 0) == BST_CHECKED;
 
     const LRESULT languageIndex =
-        SendMessageW(
-            GetDlgItem(
-                settings,
-                Const::IDC_LANGUAGE),
-            CB_GETCURSEL,
-            0,
-            0);
+        SendMessageW(GetDlgItem(settings, Const::IDC_LANGUAGE), CB_GETCURSEL, 0, 0);
 
-    newCfg.language =
-        languageIndex == 1
-            ? UiLanguage::English
-            : UiLanguage::Chinese;
+    newCfg.language = languageIndex == 1 ? UiLanguage::English : UiLanguage::Chinese;
 
     const LRESULT targetModeIndex =
-        SendMessageW(
-            GetDlgItem(
-                settings,
-                Const::IDC_TARGET_MODE),
-            CB_GETCURSEL,
-            0,
-            0);
+        SendMessageW(GetDlgItem(settings, Const::IDC_TARGET_MODE), CB_GETCURSEL, 0, 0);
 
-    newCfg.targetMode =
-        targetModeIndex == 1
-            ? TargetMode::Foreground
-            : TargetMode::Hover;
+    newCfg.targetMode = targetModeIndex == 1 ? TargetMode::Foreground : TargetMode::Hover;
 
-    HWND whitelistEdit =
-        GetDlgItem(
-            settings,
-            Const::IDC_WHITELIST);
+    HWND whitelistEdit = GetDlgItem(settings, Const::IDC_WHITELIST);
 
-    const int len =
-        GetWindowTextLengthW(
-            whitelistEdit);
+    const int len = GetWindowTextLengthW(whitelistEdit);
 
     std::wstring whitelistUi;
 
     if (len > 0)
     {
-        std::vector<wchar_t> buffer(
-            static_cast<size_t>(len) + 1,
-            L'\0');
+        std::vector<wchar_t> buffer(static_cast<size_t>(len) + 1, L'\0');
 
-        GetWindowTextW(
-            whitelistEdit,
-            buffer.data(),
-            len + 1);
+        GetWindowTextW(whitelistEdit, buffer.data(), len + 1);
 
-        whitelistUi.assign(
-            buffer.data());
+        whitelistUi.assign(buffer.data());
     }
 
-    newCfg.whitelist =
-        WhitelistForIni(
-            whitelistUi);
+    newCfg.whitelist = WhitelistForIni(whitelistUi);
 
     if (newCfg.whitelist.empty())
     {
@@ -2872,28 +1915,22 @@ static bool ApplySettingsFromWindow(
             MessageBoxW(
                 settings,
                 L10n(L"应用白名单不能为空。", L"The application whitelist cannot be empty."),
-                Const::AppName,
-                MB_OK |
-                MB_ICONWARNING);
+                Const::AppName, MB_OK | MB_ICONWARNING);
         }
 
         return false;
     }
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         g_cfg = newCfg;
         g_committedCfg = newCfg;
     }
 
-    g_enabled.store(
-        newCfg.enabled,
-        std::memory_order_relaxed);
+    g_enabled.store(newCfg.enabled, std::memory_order_relaxed);
 
-    if (!newCfg.enabled &&
-        g_pinch.active)
+    if (!newCfg.enabled && g_pinch.active)
     {
         EndActiveSegment();
     }
@@ -2903,21 +1940,18 @@ static bool ApplySettingsFromWindow(
     // Whitelist or target mode may have changed, so force a fresh check.
     RefreshTargetAllowed(true);
 
-    const bool hotkeyOk =
-        RegisterExitHotkey();
+    const bool hotkeyOk = RegisterExitHotkey();
 
     UpdateTrayTooltip();
     ApplySettingsLanguage(settings);
 
-    if (!hotkeyOk &&
-        showErrors)
+    if (!hotkeyOk && showErrors)
     {
-        MessageBoxW(
-            settings,
-            L10n(L"所选退出热键无法注册。\n可能已被其他程序占用。", L"The selected Exit hotkey could not be registered.\nAnother application may already be using it."),
-            Const::AppName,
-            MB_OK |
-            MB_ICONWARNING);
+        MessageBoxW(settings,
+                    L10n(L"所选退出热键无法注册。\n可能已被其他程序占用。",
+                         L"The selected Exit hotkey could not be registered.\nAnother application "
+                         L"may already be using it."),
+                    Const::AppName, MB_OK | MB_ICONWARNING);
     }
 
     return true;
@@ -2928,27 +1962,22 @@ static bool ApplySettingsFromWindow(
 // committed until Apply / Close. Like manual edits, only the preview fields
 // (sensitivity, curve, language) take effect live; whitelist, modifiers and
 // the enabled flag keep their committed values until applied.
-static void ResetSettingsToDefaults(
-    HWND settings)
+static void ResetSettingsToDefaults(HWND settings)
 {
     AppConfig defaults{};
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         // Start-with-Windows is a system setting; Defaults keeps it as is.
-        defaults.startWithWindows =
-            g_committedCfg.startWithWindows;
+        defaults.startWithWindows = g_committedCfg.startWithWindows;
 
         g_cfg.sensitivityLog = defaults.sensitivityLog;
         g_cfg.curve = defaults.curve;
         g_cfg.language = defaults.language;
     }
 
-    PopulateSettingsFromConfig(
-        settings,
-        defaults);
+    PopulateSettingsFromConfig(settings, defaults);
 
     UpdateTrayTooltip();
 }
@@ -2958,8 +1987,7 @@ static void ResetSettingsToDefaults(
 static void RevertSettingsPreview()
 {
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         g_cfg = g_committedCfg;
     }
@@ -2972,309 +2000,144 @@ static void RevertSettingsPreview()
 // Settings window
 // ============================================================================
 
-static LRESULT CALLBACK SettingsWndProc(
-    HWND hwnd,
-    UINT msg,
-    WPARAM wParam,
-    LPARAM lParam)
+static LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
         case WM_CREATE:
         {
-            AddStatic(
-                hwnd,
-                L"Continuous Pinch V3",
-                20, 15, 520, 24);
+            AddStatic(hwnd, L"Continuous Pinch V3", 20, 15, 520, 24);
 
-            AddStatic(
-                hwnd,
-                L"语言 / Language",
-                400, 18, 100, 22);
+            AddStatic(hwnd, L"语言 / Language", 400, 18, 100, 22);
 
-            HWND languageCombo =
-                AddCombo(
-                    hwnd,
-                    Const::IDC_LANGUAGE,
-                    500, 12, 90, 120);
+            HWND languageCombo = AddCombo(hwnd, Const::IDC_LANGUAGE, 500, 12, 90, 120);
 
-            SendMessageW(
-                languageCombo,
-                CB_ADDSTRING,
-                0,
-                reinterpret_cast<LPARAM>(L"中文"));
+            SendMessageW(languageCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"中文"));
 
-            SendMessageW(
-                languageCombo,
-                CB_ADDSTRING,
-                0,
-                reinterpret_cast<LPARAM>(L"English"));
+            SendMessageW(languageCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"English"));
 
-            HWND enabled =
-                CreateWindowExW(
-                    0,
-                    L"BUTTON",
-                    L"Enable pinch zoom",
-                    WS_CHILD |
-                    WS_VISIBLE |
-                    WS_TABSTOP |
-                    BS_AUTOCHECKBOX,
-                    20, 48, 200, 24,
-                    hwnd,
-                    reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_ENABLED)),
-                    GetModuleHandleW(
-                        nullptr),
-                    nullptr);
+            HWND enabled = CreateWindowExW(
+                0, L"BUTTON", L"Enable pinch zoom",
+                WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 20, 48, 200, 24, hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_ENABLED)),
+                GetModuleHandleW(nullptr), nullptr);
 
             SetControlFont(enabled);
 
-            AddStatic(
-                hwnd,
-                L"灵敏度 / Sensitivity",
-                20, 85, 100, 22);
+            AddStatic(hwnd, L"灵敏度 / Sensitivity", 20, 85, 100, 22);
 
-            HWND slider =
-                CreateWindowExW(
-                    0,
-                    TRACKBAR_CLASSW,
-                    L"",
-                    WS_CHILD |
-                    WS_VISIBLE |
-                    WS_TABSTOP |
-                    TBS_AUTOTICKS,
-                    120, 78, 300, 38,
-                    hwnd,
-                    reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_SENS_SLIDER)),
-                    GetModuleHandleW(
-                        nullptr),
-                    nullptr);
+            HWND slider = CreateWindowExW(
+                0, TRACKBAR_CLASSW, L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | TBS_AUTOTICKS, 120,
+                78, 300, 38, hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_SENS_SLIDER)),
+                GetModuleHandleW(nullptr), nullptr);
 
             SetControlFont(slider);
 
             // Explicit value label for the live sensitivity readout.
-            HWND sensValue =
-                CreateWindowExW(
-                    0,
-                    L"STATIC",
-                    L"",
-                    WS_CHILD |
-                    WS_VISIBLE,
-                    430, 85, 155, 22,
-                    hwnd,
-                    reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_SENS_VALUE)),
-                    GetModuleHandleW(
-                        nullptr),
-                    nullptr);
+            HWND sensValue = CreateWindowExW(
+                0, L"STATIC", L"", WS_CHILD | WS_VISIBLE, 430, 85, 155, 22, hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_SENS_VALUE)),
+                GetModuleHandleW(nullptr), nullptr);
 
             SetControlFont(sensValue);
 
-            AddStatic(
-                hwnd,
-                L"平滑曲线 / Smoothing",
-                20, 126, 100, 22);
+            AddStatic(hwnd, L"平滑曲线 / Smoothing", 20, 126, 100, 22);
 
-            AddCombo(
-                hwnd,
-                Const::IDC_CURVE,
-                120, 120, 300, 180);
+            AddCombo(hwnd, Const::IDC_CURVE, 120, 120, 300, 180);
 
-            AddStatic(
-                hwnd,
-                L"缩放修饰键 / Zoom",
-                20, 166, 100, 22);
+            AddStatic(hwnd, L"缩放修饰键 / Zoom", 20, 166, 100, 22);
 
-            AddCombo(
-                hwnd,
-                Const::IDC_ZOOM_MOD,
-                120, 160, 220, 180);
+            AddCombo(hwnd, Const::IDC_ZOOM_MOD, 120, 160, 220, 180);
 
-            AddStatic(
-                hwnd,
-                L"软复位 / Soft reset",
-                20, 206, 100, 22);
+            AddStatic(hwnd, L"软复位 / Soft reset", 20, 206, 100, 22);
 
-            AddCombo(
-                hwnd,
-                Const::IDC_RESET_MOD,
-                120, 200, 220, 180);
+            AddCombo(hwnd, Const::IDC_RESET_MOD, 120, 200, 220, 180);
 
-            AddStatic(
-                hwnd,
-                L"硬复位 / Hard reset",
-                20, 246, 100, 22);
+            AddStatic(hwnd, L"硬复位 / Hard reset", 20, 246, 100, 22);
 
-            AddCombo(
-                hwnd,
-                Const::IDC_HARDRESET_MOD,
-                120, 240, 220, 180);
+            AddCombo(hwnd, Const::IDC_HARDRESET_MOD, 120, 240, 220, 180);
 
-            AddStatic(
-                hwnd,
-                L"（修饰键 + 鼠标中键）",
-                355, 206, 220, 60);
+            AddStatic(hwnd, L"（修饰键 + 鼠标中键）", 355, 206, 220, 60);
 
-            AddStatic(
-                hwnd,
-                L"退出热键 / Exit hotkey",
-                20, 286, 100, 22);
+            AddStatic(hwnd, L"退出热键 / Exit hotkey", 20, 286, 100, 22);
 
-            HWND hotkey =
-                CreateWindowExW(
-                    WS_EX_CLIENTEDGE,
-                    HOTKEY_CLASSW,
-                    L"",
-                    WS_CHILD |
-                    WS_VISIBLE |
-                    WS_TABSTOP,
-                    120, 280, 220, 26,
-                    hwnd,
-                    reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_EXIT_HOTKEY)),
-                    GetModuleHandleW(
-                        nullptr),
-                    nullptr);
+            HWND hotkey = CreateWindowExW(
+                WS_EX_CLIENTEDGE, HOTKEY_CLASSW, L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 120, 280,
+                220, 26, hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_EXIT_HOTKEY)),
+                GetModuleHandleW(nullptr), nullptr);
 
             SetControlFont(hotkey);
 
-            AddStatic(
-                hwnd,
-                L"目标判定 / Target",
-                20, 326, 100, 22);
+            AddStatic(hwnd, L"目标判定 / Target", 20, 326, 100, 22);
 
-            HWND targetMode =
-                AddCombo(
-                    hwnd,
-                    Const::IDC_TARGET_MODE,
-                    120, 320, 300, 120);
+            HWND targetMode = AddCombo(hwnd, Const::IDC_TARGET_MODE, 120, 320, 300, 120);
 
             SetControlFont(targetMode);
 
-            AddStatic(
-                hwnd,
-                L"应用白名单（每行一个 exe）",
-                20, 366, 420, 22);
+            AddStatic(hwnd, L"应用白名单（每行一个 exe）", 20, 366, 420, 22);
 
             HWND whitelist =
-                CreateWindowExW(
-                    WS_EX_CLIENTEDGE,
-                    L"EDIT",
-                    L"",
-                    WS_CHILD |
-                    WS_VISIBLE |
-                    WS_TABSTOP |
-                    WS_VSCROLL |
-                    ES_MULTILINE |
-                    ES_AUTOVSCROLL |
-                    ES_WANTRETURN,
-                    20, 390, 555, 120,
-                    hwnd,
-                    reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_WHITELIST)),
-                    GetModuleHandleW(
-                        nullptr),
-                    nullptr);
+                CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"",
+                                WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | ES_MULTILINE
+                                    | ES_AUTOVSCROLL | ES_WANTRETURN,
+                                20, 390, 555, 120, hwnd,
+                                reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_WHITELIST)),
+                                GetModuleHandleW(nullptr), nullptr);
 
             SetControlFont(whitelist);
 
-            HWND startup =
-                CreateWindowExW(
-                    0,
-                    L"BUTTON",
-                    L10n(L"开机启动", L"Start with Windows"),
-                    WS_CHILD |
-                    WS_VISIBLE |
-                    WS_TABSTOP |
-                    BS_AUTOCHECKBOX,
-                    20, 525, 200, 24,
-                    hwnd,
-                    reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_STARTUP)),
-                    GetModuleHandleW(
-                        nullptr),
-                    nullptr);
+            HWND startup = CreateWindowExW(
+                0, L"BUTTON", L10n(L"开机启动", L"Start with Windows"),
+                WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 20, 525, 200, 24, hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_STARTUP)),
+                GetModuleHandleW(nullptr), nullptr);
 
             SetControlFont(startup);
 
-            HWND defaults =
-                CreateWindowExW(
-                    0,
-                    L"BUTTON",
-                    L"Defaults",
-                    WS_CHILD |
-                    WS_VISIBLE |
-                    WS_TABSTOP |
-                    BS_PUSHBUTTON,
-                    250, 560, 95, 30,
-                    hwnd,
-                    reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_DEFAULTS)),
-                    GetModuleHandleW(
-                        nullptr),
-                    nullptr);
+            HWND defaults = CreateWindowExW(
+                0, L"BUTTON", L"Defaults", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 250,
+                560, 95, 30, hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_DEFAULTS)),
+                GetModuleHandleW(nullptr), nullptr);
 
             SetControlFont(defaults);
 
-            HWND apply =
-                CreateWindowExW(
-                    0,
-                    L"BUTTON",
-                    L"Apply",
-                    WS_CHILD |
-                    WS_VISIBLE |
-                    WS_TABSTOP |
-                    BS_DEFPUSHBUTTON,
-                    355, 560, 95, 30,
-                    hwnd,
-                    reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_APPLY)),
-                    GetModuleHandleW(
-                        nullptr),
-                    nullptr);
+            HWND apply = CreateWindowExW(
+                0, L"BUTTON", L"Apply", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON, 355,
+                560, 95, 30, hwnd, reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_APPLY)),
+                GetModuleHandleW(nullptr), nullptr);
 
             SetControlFont(apply);
 
-            HWND close =
-                CreateWindowExW(
-                    0,
-                    L"BUTTON",
-                    L"Close",
-                    WS_CHILD |
-                    WS_VISIBLE |
-                    WS_TABSTOP |
-                    BS_PUSHBUTTON,
-                    460, 560, 95, 30,
-                    hwnd,
-                    reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_CLOSE)),
-                    GetModuleHandleW(
-                        nullptr),
-                    nullptr);
+            HWND close = CreateWindowExW(
+                0, L"BUTTON", L"Close", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 460,
+                560, 95, 30, hwnd, reinterpret_cast<HMENU>(static_cast<INT_PTR>(Const::IDC_CLOSE)),
+                GetModuleHandleW(nullptr), nullptr);
 
             SetControlFont(close);
 
             AppConfig cfg;
 
             {
-                std::lock_guard<std::mutex> lock(
-                    g_cfgMutex);
+                std::lock_guard<std::mutex> lock(g_cfgMutex);
 
                 cfg = g_committedCfg;
             }
 
-            PopulateSettingsFromConfig(
-                hwnd,
-                cfg);
+            PopulateSettingsFromConfig(hwnd, cfg);
 
             return 0;
         }
 
         case WM_HSCROLL:
         {
-            HWND source =
-                reinterpret_cast<HWND>(
-                    lParam);
+            HWND source = reinterpret_cast<HWND>(lParam);
 
-            if (source ==
-                GetDlgItem(
-                    hwnd,
-                    Const::IDC_SENS_SLIDER))
+            if (source == GetDlgItem(hwnd, Const::IDC_SENS_SLIDER))
             {
-                UpdateSensitivityLabel(
-                    hwnd);
+                UpdateSensitivityLabel(hwnd);
             }
 
             return 0;
@@ -3282,86 +2145,54 @@ static LRESULT CALLBACK SettingsWndProc(
 
         case WM_COMMAND:
         {
-            const int id =
-                LOWORD(
-                    wParam);
+            const int id = LOWORD(wParam);
 
-            const int notify =
-                HIWORD(
-                    wParam);
+            const int notify = HIWORD(wParam);
 
-            if (id ==
-                    Const::IDC_CURVE &&
-                notify ==
-                    CBN_SELCHANGE)
+            if (id == Const::IDC_CURVE && notify == CBN_SELCHANGE)
             {
-                UpdateCurveRealtime(
-                    hwnd);
+                UpdateCurveRealtime(hwnd);
 
                 return 0;
             }
 
-            if (id ==
-                    Const::IDC_LANGUAGE &&
-                notify ==
-                    CBN_SELCHANGE)
+            if (id == Const::IDC_LANGUAGE && notify == CBN_SELCHANGE)
             {
                 const LRESULT index =
-                    SendMessageW(
-                        GetDlgItem(
-                            hwnd,
-                            Const::IDC_LANGUAGE),
-                        CB_GETCURSEL,
-                        0,
-                        0);
+                    SendMessageW(GetDlgItem(hwnd, Const::IDC_LANGUAGE), CB_GETCURSEL, 0, 0);
 
                 {
-                    std::lock_guard<std::mutex> lock(
-                        g_cfgMutex);
+                    std::lock_guard<std::mutex> lock(g_cfgMutex);
 
-                    g_cfg.language =
-                        index == 1
-                            ? UiLanguage::English
-                            : UiLanguage::Chinese;
+                    g_cfg.language = index == 1 ? UiLanguage::English : UiLanguage::Chinese;
                 }
 
-                ApplySettingsLanguage(
-                    hwnd);
+                ApplySettingsLanguage(hwnd);
 
                 UpdateTrayTooltip();
 
                 return 0;
             }
 
-            if (id ==
-                Const::IDC_DEFAULTS)
+            if (id == Const::IDC_DEFAULTS)
             {
-                ResetSettingsToDefaults(
-                    hwnd);
+                ResetSettingsToDefaults(hwnd);
 
                 return 0;
             }
 
-            if (id ==
-                Const::IDC_APPLY)
+            if (id == Const::IDC_APPLY)
             {
-                ApplySettingsFromWindow(
-                    hwnd,
-                    true);
+                ApplySettingsFromWindow(hwnd, true);
 
                 return 0;
             }
 
-            if (id ==
-                Const::IDC_CLOSE)
+            if (id == Const::IDC_CLOSE)
             {
-                if (ApplySettingsFromWindow(
-                        hwnd,
-                        true))
+                if (ApplySettingsFromWindow(hwnd, true))
                 {
-                    ShowWindow(
-                        hwnd,
-                        SW_HIDE);
+                    ShowWindow(hwnd, SW_HIDE);
                 }
 
                 return 0;
@@ -3375,79 +2206,38 @@ static LRESULT CALLBACK SettingsWndProc(
             // X = cancel: drop unapplied preview values.
             RevertSettingsPreview();
 
-            ShowWindow(
-                hwnd,
-                SW_HIDE);
+            ShowWindow(hwnd, SW_HIDE);
 
             return 0;
         }
     }
 
-    return DefWindowProcW(
-        hwnd,
-        msg,
-        wParam,
-        lParam);
+    return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 
-static bool CreateSettingsWindow(
-    HINSTANCE hInstance)
+static bool CreateSettingsWindow(HINSTANCE hInstance)
 {
-    const wchar_t* className =
-        L"ContinuousPinchV3SettingsWindow";
+    const wchar_t* className = L"ContinuousPinchV3SettingsWindow";
 
     WNDCLASSEXW wc{};
     wc.cbSize = sizeof(wc);
-    wc.lpfnWndProc =
-        SettingsWndProc;
-    wc.hInstance =
-        hInstance;
-    wc.hCursor =
-        LoadCursorW(
-            nullptr,
-            MAKEINTRESOURCEW(
-                IDC_ARROW));
-    wc.hIcon =
-        LoadIconW(
-            hInstance,
-            MAKEINTRESOURCEW(
-                IDI_APP_ICON));
-    wc.hIconSm =
-        LoadIconW(
-            hInstance,
-            MAKEINTRESOURCEW(
-                IDI_APP_ICON));
-    wc.hbrBackground =
-        reinterpret_cast<HBRUSH>(
-            COLOR_WINDOW + 1);
-    wc.lpszClassName =
-        className;
+    wc.lpfnWndProc = SettingsWndProc;
+    wc.hInstance = hInstance;
+    wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(IDC_ARROW));
+    wc.hIcon = LoadIconW(hInstance, MAKEINTRESOURCEW(IDI_APP_ICON));
+    wc.hIconSm = LoadIconW(hInstance, MAKEINTRESOURCEW(IDI_APP_ICON));
+    wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+    wc.lpszClassName = className;
 
-    RegisterClassExW(
-        &wc);
+    RegisterClassExW(&wc);
 
     g_settingsWindow =
-        CreateWindowExW(
-            WS_EX_APPWINDOW,
-            className,
-            L"Continuous Pinch V3 设置",
-            WS_OVERLAPPED |
-            WS_CAPTION |
-            WS_SYSMENU |
-            WS_MINIMIZEBOX,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            620,
-            650,
-            nullptr,
-            nullptr,
-            hInstance,
-            nullptr);
+        CreateWindowExW(WS_EX_APPWINDOW, className, L"Continuous Pinch V3 设置",
+                        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, CW_USEDEFAULT,
+                        CW_USEDEFAULT, 620, 650, nullptr, nullptr, hInstance, nullptr);
 
-    return
-        g_settingsWindow !=
-        nullptr;
+    return g_settingsWindow != nullptr;
 }
 
 
@@ -3457,19 +2247,14 @@ static void ShowSettingsWindow()
         return;
 
     // Already open: just bring it forward, keep the user's pending edits.
-    if (IsWindowVisible(
-            g_settingsWindow))
+    if (IsWindowVisible(g_settingsWindow))
     {
-        if (IsIconic(
-                g_settingsWindow))
+        if (IsIconic(g_settingsWindow))
         {
-            ShowWindow(
-                g_settingsWindow,
-                SW_RESTORE);
+            ShowWindow(g_settingsWindow, SW_RESTORE);
         }
 
-        SetForegroundWindow(
-            g_settingsWindow);
+        SetForegroundWindow(g_settingsWindow);
 
         return;
     }
@@ -3480,22 +2265,16 @@ static void ShowSettingsWindow()
     AppConfig cfg;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
         cfg = g_committedCfg;
     }
 
-    PopulateSettingsFromConfig(
-        g_settingsWindow,
-        cfg);
+    PopulateSettingsFromConfig(g_settingsWindow, cfg);
 
-    ShowWindow(
-        g_settingsWindow,
-        SW_SHOW);
+    ShowWindow(g_settingsWindow, SW_SHOW);
 
-    SetForegroundWindow(
-        g_settingsWindow);
+    SetForegroundWindow(g_settingsWindow);
 }
 
 
@@ -3508,11 +2287,9 @@ static void ToggleEnabled()
     bool enabled;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
-        enabled =
-            !g_committedCfg.enabled;
+        enabled = !g_committedCfg.enabled;
 
         // Tray toggles commit immediately. Update only this field so any
         // unapplied preview values in g_cfg are neither saved nor lost.
@@ -3520,12 +2297,9 @@ static void ToggleEnabled()
         g_cfg.enabled = enabled;
     }
 
-    g_enabled.store(
-        enabled,
-        std::memory_order_relaxed);
+    g_enabled.store(enabled, std::memory_order_relaxed);
 
-    if (!enabled &&
-        g_pinch.active)
+    if (!enabled && g_pinch.active)
     {
         EndActiveSegment();
     }
@@ -3537,13 +2311,8 @@ static void ToggleEnabled()
     // silently undo the tray toggle.
     if (g_settingsWindow)
     {
-        SendMessageW(
-            GetDlgItem(
-                g_settingsWindow,
-                Const::IDC_ENABLED),
-            BM_SETCHECK,
-            enabled ? BST_CHECKED : BST_UNCHECKED,
-            0);
+        SendMessageW(GetDlgItem(g_settingsWindow, Const::IDC_ENABLED), BM_SETCHECK,
+                     enabled ? BST_CHECKED : BST_UNCHECKED, 0);
     }
 }
 
@@ -3553,11 +2322,9 @@ static void ToggleStartup()
     bool startup;
 
     {
-        std::lock_guard<std::mutex> lock(
-            g_cfgMutex);
+        std::lock_guard<std::mutex> lock(g_cfgMutex);
 
-        startup =
-            !g_committedCfg.startWithWindows;
+        startup = !g_committedCfg.startWithWindows;
 
         g_committedCfg.startWithWindows = startup;
         g_cfg.startWithWindows = startup;
@@ -3567,25 +2334,15 @@ static void ToggleStartup()
 
     if (g_settingsWindow)
     {
-        SendMessageW(
-            GetDlgItem(
-                g_settingsWindow,
-                Const::IDC_STARTUP),
-            BM_SETCHECK,
-            startup ? BST_CHECKED : BST_UNCHECKED,
-            0);
+        SendMessageW(GetDlgItem(g_settingsWindow, Const::IDC_STARTUP), BM_SETCHECK,
+                     startup ? BST_CHECKED : BST_UNCHECKED, 0);
     }
 }
 
 
-static LRESULT CALLBACK MainWndProc(
-    HWND hwnd,
-    UINT msg,
-    WPARAM wParam,
-    LPARAM lParam)
+static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    if (g_taskbarCreatedMsg != 0 &&
-        msg == g_taskbarCreatedMsg)
+    if (g_taskbarCreatedMsg != 0 && msg == g_taskbarCreatedMsg)
     {
         AddTrayIcon();
         UpdateTrayTooltip();
@@ -3596,13 +2353,9 @@ static LRESULT CALLBACK MainWndProc(
     {
         case Const::WM_APP_WHEEL:
         {
-            const short delta =
-                static_cast<short>(
-                    LOWORD(
-                        wParam));
+            const short delta = static_cast<short>(LOWORD(wParam));
 
-            ApplyWheelDelta(
-                delta);
+            ApplyWheelDelta(delta);
 
             return 0;
         }
@@ -3617,12 +2370,10 @@ static LRESULT CALLBACK MainWndProc(
         {
             if (!HardResetDevice())
             {
-                MessageBoxW(
-                    nullptr,
-                    L10n(L"硬复位失败：无法重新创建虚拟触控板。", L"Hard reset failed to recreate the synthetic touchpad."),
-                    Const::AppName,
-                    MB_OK |
-                    MB_ICONERROR);
+                MessageBoxW(nullptr,
+                            L10n(L"硬复位失败：无法重新创建虚拟触控板。",
+                                 L"Hard reset failed to recreate the synthetic touchpad."),
+                            Const::AppName, MB_OK | MB_ICONERROR);
             }
 
             return 0;
@@ -3636,8 +2387,7 @@ static LRESULT CALLBACK MainWndProc(
 
         case WM_TIMER:
         {
-            if (wParam ==
-                Const::AnimationTimerId)
+            if (wParam == Const::AnimationTimerId)
             {
                 TickPinch();
                 return 0;
@@ -3648,11 +2398,9 @@ static LRESULT CALLBACK MainWndProc(
 
         case WM_HOTKEY:
         {
-            if (wParam ==
-                Const::ExitHotkeyId)
+            if (wParam == Const::ExitHotkeyId)
             {
-                DestroyWindow(
-                    hwnd);
+                DestroyWindow(hwnd);
 
                 return 0;
             }
@@ -3662,17 +2410,13 @@ static LRESULT CALLBACK MainWndProc(
 
         case Const::WM_TRAY:
         {
-            if (lParam ==
-                    WM_RBUTTONUP ||
-                lParam ==
-                    WM_CONTEXTMENU)
+            if (lParam == WM_RBUTTONUP || lParam == WM_CONTEXTMENU)
             {
                 ShowTrayMenu();
                 return 0;
             }
 
-            if (lParam ==
-                    WM_LBUTTONDBLCLK)
+            if (lParam == WM_LBUTTONDBLCLK)
             {
                 ShowSettingsWindow();
                 return 0;
@@ -3683,9 +2427,7 @@ static LRESULT CALLBACK MainWndProc(
 
         case WM_COMMAND:
         {
-            switch (
-                LOWORD(
-                    wParam))
+            switch (LOWORD(wParam))
             {
                 case Const::IDM_TRAY_ENABLE:
                     ToggleEnabled();
@@ -3708,8 +2450,7 @@ static LRESULT CALLBACK MainWndProc(
                     return 0;
 
                 case Const::IDM_TRAY_EXIT:
-                    DestroyWindow(
-                        hwnd);
+                    DestroyWindow(hwnd);
                     return 0;
             }
 
@@ -3741,26 +2482,17 @@ static LRESULT CALLBACK MainWndProc(
 
             DestroyTouchpadDevice();
 
-            KillTimer(
-                hwnd,
-                Const::AnimationTimerId);
+            KillTimer(hwnd, Const::AnimationTimerId);
 
-            UnregisterHotKey(
-                hwnd,
-                Const::ExitHotkeyId);
+            UnregisterHotKey(hwnd, Const::ExitHotkeyId);
 
-            PostQuitMessage(
-                0);
+            PostQuitMessage(0);
 
             return 0;
         }
     }
 
-    return DefWindowProcW(
-        hwnd,
-        msg,
-        wParam,
-        lParam);
+    return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 
@@ -3768,53 +2500,31 @@ static LRESULT CALLBACK MainWndProc(
 // Entry
 // ============================================================================
 
-int WINAPI wWinMain(
-    HINSTANCE hInstance,
-    HINSTANCE,
-    PWSTR,
-    int)
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 {
-    SetProcessDpiAwarenessContext(
-        DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
     // Single instance: a second launch opens the running instance's Settings
     // instead of creating a second hook, touchpad and tray icon.
-    HANDLE instanceMutex =
-        CreateMutexW(
-            nullptr,
-            FALSE,
-            Const::SingleInstanceMutex);
+    HANDLE instanceMutex = CreateMutexW(nullptr, FALSE, Const::SingleInstanceMutex);
 
-    if (instanceMutex &&
-        GetLastError() ==
-            ERROR_ALREADY_EXISTS)
+    if (instanceMutex && GetLastError() == ERROR_ALREADY_EXISTS)
     {
-        HWND existing =
-            FindWindowW(
-                Const::MainWindowClass,
-                nullptr);
+        HWND existing = FindWindowW(Const::MainWindowClass, nullptr);
 
         if (existing)
         {
             DWORD pid = 0;
 
-            GetWindowThreadProcessId(
-                existing,
-                &pid);
+            GetWindowThreadProcessId(existing, &pid);
 
             // Let the running instance bring Settings to the foreground.
-            AllowSetForegroundWindow(
-                pid);
+            AllowSetForegroundWindow(pid);
 
-            PostMessageW(
-                existing,
-                Const::WM_APP_SHOW_SETTINGS,
-                0,
-                0);
+            PostMessageW(existing, Const::WM_APP_SHOW_SETTINGS, 0, 0);
         }
 
-        CloseHandle(
-            instanceMutex);
+        CloseHandle(instanceMutex);
 
         return 0;
     }
@@ -3829,73 +2539,48 @@ int WINAPI wWinMain(
             if (handle)
                 CloseHandle(handle);
         }
-    } instanceMutexHolder{ instanceMutex };
+    } instanceMutexHolder{instanceMutex};
 
     timeBeginPeriod(1);
 
     INITCOMMONCONTROLSEX icc{};
     icc.dwSize = sizeof(icc);
-    icc.dwICC =
-        ICC_BAR_CLASSES |
-        ICC_STANDARD_CLASSES |
-        ICC_WIN95_CLASSES;
+    icc.dwICC = ICC_BAR_CLASSES | ICC_STANDARD_CLASSES | ICC_WIN95_CLASSES;
 
-    InitCommonControlsEx(
-        &icc);
+    InitCommonControlsEx(&icc);
 
-    g_configPath =
-        GetConfigPath();
+    g_configPath = GetConfigPath();
 
     LoadConfig();
 
     if (!CreateTouchpadDevice())
     {
-        const DWORD err =
-            GetLastError();
+        const DWORD err = GetLastError();
 
         wchar_t text[512]{};
 
-        swprintf_s(
-            text,
-            L"Failed to create a Windows 11 synthetic precision touchpad.\n\n"
-            L"GetLastError = %lu",
-            err);
+        swprintf_s(text,
+                   L"Failed to create a Windows 11 synthetic precision touchpad.\n\n"
+                   L"GetLastError = %lu",
+                   err);
 
-        MessageBoxW(
-            nullptr,
-            text,
-            Const::AppName,
-            MB_OK |
-            MB_ICONERROR);
+        MessageBoxW(nullptr, text, Const::AppName, MB_OK | MB_ICONERROR);
 
         timeEndPeriod(1);
         return 1;
     }
 
-    const wchar_t* mainClass =
-        Const::MainWindowClass;
+    const wchar_t* mainClass = Const::MainWindowClass;
 
     WNDCLASSEXW wc{};
     wc.cbSize = sizeof(wc);
-    wc.lpfnWndProc =
-        MainWndProc;
-    wc.hInstance =
-        hInstance;
-    wc.hIcon =
-        LoadIconW(
-            hInstance,
-            MAKEINTRESOURCEW(
-                IDI_APP_ICON));
-    wc.hIconSm =
-        LoadIconW(
-            hInstance,
-            MAKEINTRESOURCEW(
-                IDI_APP_ICON));
-    wc.lpszClassName =
-        mainClass;
+    wc.lpfnWndProc = MainWndProc;
+    wc.hInstance = hInstance;
+    wc.hIcon = LoadIconW(hInstance, MAKEINTRESOURCEW(IDI_APP_ICON));
+    wc.hIconSm = LoadIconW(hInstance, MAKEINTRESOURCEW(IDI_APP_ICON));
+    wc.lpszClassName = mainClass;
 
-    if (!RegisterClassExW(
-            &wc))
+    if (!RegisterClassExW(&wc))
     {
         DestroyTouchpadDevice();
         timeEndPeriod(1);
@@ -3909,21 +2594,10 @@ int WINAPI wWinMain(
     //     TaskbarCreated, WM_DISPLAYCHANGE and WM_QUERYENDSESSION;
     //   - FindWindowW() (used by the single-instance check) skips them.
     // The window is never shown; WS_EX_TOOLWINDOW keeps it out of Alt+Tab.
-    g_taskbarCreatedMsg =
-        RegisterWindowMessageW(
-            L"TaskbarCreated");
+    g_taskbarCreatedMsg = RegisterWindowMessageW(L"TaskbarCreated");
 
-    g_mainWindow =
-        CreateWindowExW(
-            WS_EX_TOOLWINDOW,
-            mainClass,
-            Const::AppName,
-            WS_POPUP,
-            0, 0, 0, 0,
-            nullptr,
-            nullptr,
-            hInstance,
-            nullptr);
+    g_mainWindow = CreateWindowExW(WS_EX_TOOLWINDOW, mainClass, Const::AppName, WS_POPUP, 0, 0, 0,
+                                   0, nullptr, nullptr, hInstance, nullptr);
 
     if (!g_mainWindow)
     {
@@ -3935,31 +2609,20 @@ int WINAPI wWinMain(
     // Allow TaskbarCreated through UIPI in case the tool runs elevated.
     if (g_taskbarCreatedMsg != 0)
     {
-        ChangeWindowMessageFilterEx(
-            g_mainWindow,
-            g_taskbarCreatedMsg,
-            MSGFLT_ALLOW,
-            nullptr);
+        ChangeWindowMessageFilterEx(g_mainWindow, g_taskbarCreatedMsg, MSGFLT_ALLOW, nullptr);
     }
 
-    if (!CreateSettingsWindow(
-            hInstance))
+    if (!CreateSettingsWindow(hInstance))
     {
-        DestroyWindow(
-            g_mainWindow);
+        DestroyWindow(g_mainWindow);
 
         timeEndPeriod(1);
         return 1;
     }
 
-    if (!SetTimer(
-            g_mainWindow,
-            Const::AnimationTimerId,
-            Const::AnimationIntervalMs,
-            nullptr))
+    if (!SetTimer(g_mainWindow, Const::AnimationTimerId, Const::AnimationIntervalMs, nullptr))
     {
-        DestroyWindow(
-            g_mainWindow);
+        DestroyWindow(g_mainWindow);
 
         timeEndPeriod(1);
         return 1;
@@ -3971,17 +2634,11 @@ int WINAPI wWinMain(
     // Existing users can switch to Foreground mode in Settings.
     RefreshTargetAllowed(true);
 
-    g_mouseHook =
-        SetWindowsHookExW(
-            WH_MOUSE_LL,
-            LowLevelMouseProc,
-            hInstance,
-            0);
+    g_mouseHook = SetWindowsHookExW(WH_MOUSE_LL, LowLevelMouseProc, hInstance, 0);
 
     if (!g_mouseHook)
     {
-        DestroyWindow(
-            g_mainWindow);
+        DestroyWindow(g_mainWindow);
 
         timeEndPeriod(1);
         return 1;
@@ -3991,9 +2648,7 @@ int WINAPI wWinMain(
     UpdateTrayTooltip();
 
     // First run: show Settings so the controls are discoverable.
-    if (GetFileAttributesW(
-            g_configPath.c_str()) ==
-        INVALID_FILE_ATTRIBUTES)
+    if (GetFileAttributesW(g_configPath.c_str()) == INVALID_FILE_ATTRIBUTES)
     {
         SaveConfig();
         ShowSettingsWindow();
@@ -4001,38 +2656,28 @@ int WINAPI wWinMain(
 
     MSG msg{};
 
-    while (GetMessageW(
-               &msg,
-               nullptr,
-               0,
-               0) > 0)
+    while (GetMessageW(&msg, nullptr, 0, 0) > 0)
     {
-        TranslateMessage(
-            &msg);
+        TranslateMessage(&msg);
 
-        DispatchMessageW(
-            &msg);
+        DispatchMessageW(&msg);
     }
 
     if (g_mouseHook)
     {
-        UnhookWindowsHookEx(
-            g_mouseHook);
+        UnhookWindowsHookEx(g_mouseHook);
 
         g_mouseHook = nullptr;
     }
 
     if (g_settingsWindow)
     {
-        DestroyWindow(
-            g_settingsWindow);
+        DestroyWindow(g_settingsWindow);
 
-        g_settingsWindow =
-            nullptr;
+        g_settingsWindow = nullptr;
     }
 
-    g_mainWindow =
-        nullptr;
+    g_mainWindow = nullptr;
 
     timeEndPeriod(1);
 

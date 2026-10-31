@@ -1,0 +1,44 @@
+---
+# Continuous Pinch code style.
+# Run from the repository root:  clang-format -i src/*.cpp src/*.h
+BasedOnStyle: Microsoft
+Language: Cpp
+Standard: c++17
+
+ColumnLimit: 100
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+BreakBeforeBraces: Allman
+IndentCaseLabels: true
+NamespaceIndentation: None
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortLambdasOnASingleLine: Inline
+
+BinPackArguments: true
+BinPackParameters: true
+AlignAfterOpenBracket: Align
+AlignOperands: Align
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeTernaryOperators: true
+
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignTrailingComments: true
+SpacesBeforeTrailingComments: 2
+
+MaxEmptyLinesToKeep: 2
+KeepEmptyLines:
+  AtStartOfBlock: false
+
+SortIncludes: Never
+IncludeBlocks: Preserve
+ReflowComments: false
+...
