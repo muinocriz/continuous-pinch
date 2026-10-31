@@ -311,7 +311,6 @@ continuous-pinch/
 ├─ build.bat
 ├─ README.md
 ├─ CHANGELOG.md
-├─ RELEASE_NOTES.md
 ├─ .clang-format
 ├─ .gitattributes
 └─ .gitignore
