@@ -45,7 +45,7 @@ body {
   color: var(--ink);
   background: var(--mist);
 }
-img { max-width: 100%; display: block; }
+img { max-width: 100%; height: auto; display: block; }
 a { color: var(--cyan-ink); text-underline-offset: 3px; }
 a:hover { color: var(--ink); }
 :focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
@@ -128,7 +128,7 @@ a:hover { color: var(--ink); }
   color: #fff; background: #3d4478; border-radius: 8px; padding: 0 6px; font-size: 10px; line-height: 16px;
 }
 .omnibox .zoom-pill.on { display: inline-flex; }
-.viewport { position: relative; aspect-ratio: 4 / 3; background: var(--sheet); overflow: hidden; }
+.viewport { position: relative; aspect-ratio: 4 / 3; background: var(--sheet); overflow: hidden; contain: layout paint; }
 .page { position: absolute; inset: 0; color: #1d2333; font-size: 11px; line-height: 1.55; padding: 12px 14px; will-change: transform; }
 .page .art { display: block; width: 100%; height: 116px; border-radius: 6px; }
 .page h3 { font-size: 14px; margin: 9px 0 1px; line-height: 1.3; text-align: center; }
@@ -143,7 +143,8 @@ a:hover { color: var(--ink); }
 }
 .touchpad.mini { width: 84px; height: 56px; border-radius: 9px; }
 .finger {
-  position: absolute; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+  position: absolute; top: 50%; left: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+  will-change: transform;
   background: radial-gradient(circle, rgba(255,255,255,.95) 0 30%, var(--cyan) 60%, rgba(34,211,238,0) 72%);
   opacity: 0; transition: opacity .18s;
 }
@@ -171,7 +172,7 @@ a:hover { color: var(--ink); }
   margin-top: 10px; display: flex; align-items: baseline; justify-content: center; gap: 8px;
   font-variant-numeric: tabular-nums; color: #9ba3c4; font-size: 14px;
 }
-.readout b { font-family: var(--font-display); font-size: 28px; font-weight: 600; color: #fff; min-width: 3.4em; text-align: center; }
+.readout b { font-family: var(--font-display); font-size: 28px; font-weight: 600; color: #fff; min-width: 3.4em; text-align: center; contain: layout; }
 .demo[data-mode="ours"] .readout b { color: var(--cyan); }
 .demo[data-mode="ctrl"] .readout b { color: var(--muted); }
 
@@ -426,7 +427,7 @@ footer .spacer { margin-left: auto; }
       </ul>
     </div>
     <figure style="margin:0">
-      <img class="shot" id="settingsShot" src="assets/settings-cn.png" width="649" height="800" alt="Continuous Pinch 设置窗口" data-i18n-attr="alt:shotAlt" loading="lazy">
+      <img class="shot" id="settingsShot" src="assets/settings-cn.png" width="829" height="1022" alt="Continuous Pinch 设置窗口" data-i18n-attr="alt:shotAlt" loading="lazy">
       <figcaption class="shot-cap" data-i18n="shotCap">设置窗口</figcaption>
     </figure>
   </div>
@@ -716,12 +717,15 @@ footer .spacer { margin-left: auto; }
       p.cursor.style.left = `${p.focus.x}px`;
       p.cursor.style.top = `${p.focus.y}px`;
       p.page.style.transformOrigin = `${p.focus.x}px ${p.focus.y}px`;
+      p.padWidth = p.pad ? p.pad.clientWidth : 0;     // cached: no layout reads per frame
     });
   }
 
   /* ----------------------------------------------------------------
      Timeline (seconds), shared by all three panels
      ---------------------------------------------------------------- */
+  // Demo time runs SPEED times faster than real time.
+  const SPEED = 1.2;
   const CYCLE = 10.4;
   const KEY_DOWN = [[0.6, 4.3], [5.0, 8.9]];
   const IN_START = 0.8, OUT_START = 5.2, SPAN = 3.0;
@@ -757,7 +761,9 @@ footer .spacer { margin-left: auto; }
     const target = (Math.LN2 / OURS_NOTCHES) * notchesAt(s, OURS_NOTCHES);
     if (s < lastS) oursLog = 0;                       // loop restarted
     lastS = s;
-    const k = dt <= 0 ? 1 : 1 - Math.exp(-dt * 11);
+    // Rate 6/s: each notch's motion flows into the next one instead of
+    // reaching the target and stopping (which looked like a staircase).
+    const k = dt <= 0 ? 1 : 1 - Math.exp(-dt * 6);
     oursLog += (target - oursLog) * k;
     return Math.exp(oursLog);
   }
@@ -770,15 +776,16 @@ footer .spacer { margin-left: auto; }
   let clock = 2.2;              // start a little into the cycle so motion is visible at once
   let playing = true;
   let lastFrame = 0;
-  let lastCtrlLevel = 1, pillUntil = 0;
 
-  function fingerSpread(pad, scale, on) {
-    pad.classList.toggle("on", on);
-    const w = pad.clientWidth;
-    const half = (w * 0.16) * scale;                  // distance grows with the zoom factor
-    pad.querySelectorAll(".finger").forEach((f, i) => {
-      f.style.left = `${w / 2 + (i === 0 ? -half : half)}px`;
-    });
+  // Writes only when a value changed; never reads layout during a frame.
+  function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
+  function setStyle(el, prop, value) { if (el.style[prop] !== value) el.style[prop] = value; }
+
+  function fingerSpread(p, scale, on) {
+    p.pad.classList.toggle("on", on);
+    const half = (p.padWidth * 0.16) * scale;          // distance grows with the zoom factor
+    setStyle(p.fingers[0], "transform", `translateX(${(-half).toFixed(1)}px)`);
+    setStyle(p.fingers[1], "transform", `translateX(${half.toFixed(1)}px)`);
   }
 
   function render(dt = 0) {
@@ -789,27 +796,26 @@ footer .spacer { margin-left: auto; }
     // 1. Touchpad
     const [touch, ours, ctrl] = panels;
     const ts = touchScale(s);
-    touch.page.style.transform = `scale(${ts})`;
-    touch.readout.textContent = `×${ts.toFixed(2)}`;
-    fingerSpread(touch.pad, ts, zooming);
+    setStyle(touch.page, "transform", `scale(${ts.toFixed(4)})`);
+    setText(touch.readout, `×${ts.toFixed(2)}`);
+    fingerSpread(touch, ts, zooming);
 
     // 2. Continuous Pinch
     const os = oursScale(s, dt);
-    ours.page.style.transform = `scale(${os})`;
-    ours.readout.textContent = `×${os.toFixed(2)}`;
+    setStyle(ours.page, "transform", `scale(${os.toFixed(4)})`);
+    setText(ours.readout, `×${os.toFixed(2)}`);
     ours.key.classList.toggle("down", down);
-    ours.ticks.style.transform = `translateY(${(totalNotches(s, OURS_NOTCHES) % 6) * 4}px)`;
+    setStyle(ours.ticks, "transform", `translateY(${(totalNotches(s, OURS_NOTCHES) % 6) * 4}px)`);
     ours.mouse.classList.toggle("spin", zooming);
-    fingerSpread(ours.pad, os, down && Math.abs(os - 1) > 0.002);
+    fingerSpread(ours, os, down && Math.abs(os - 1) > 0.002);
 
     // 3. Ctrl + wheel: real reflow via CSS zoom, anchored top-left, no animation between steps
     const cz = ctrlZoom(s);
-    if (cz !== lastCtrlLevel) { pillUntil = clock + 1.2; lastCtrlLevel = cz; }
-    ctrl.page.style.zoom = cz === 1 ? "" : String(cz);
-    ctrl.readout.textContent = `${Math.round(cz * 100)}%`;
+    setStyle(ctrl.page, "zoom", cz === 1 ? "" : String(cz));
+    setText(ctrl.readout, `${Math.round(cz * 100)}%`);
     ctrl.key.classList.toggle("down", down);
-    ctrl.ticks.style.transform = `translateY(${(totalNotches(s, CTRL_LEVELS.length - 1) % 6) * 4}px)`;
-    ctrl.pillText.textContent = `${Math.round(cz * 100)}%`;
+    setStyle(ctrl.ticks, "transform", `translateY(${(totalNotches(s, CTRL_LEVELS.length - 1) % 6) * 4}px)`);
+    setText(ctrl.pillText, `${Math.round(cz * 100)}%`);
     ctrl.pill.classList.toggle("on", cz !== 1);
   }
 
@@ -817,8 +823,8 @@ footer .spacer { margin-left: auto; }
     const dt = lastFrame ? Math.min(0.05, (now - lastFrame) / 1000) : 0;
     lastFrame = now;
     if (playing && visible) {
-      clock += dt;
-      render(dt);
+      clock += dt * SPEED;
+      render(dt * SPEED);
     }
     requestAnimationFrame(frame);
   }
@@ -846,7 +852,7 @@ footer .spacer { margin-left: auto; }
     clock = Number(freezeAt);
     oursLog = 0; lastS = 0;
     // run the easing up to that moment so the frozen frame is exact
-    for (let s = 0; s <= clock; s += 1 / 120) { oursScale(s % CYCLE, 1 / 120); }
+    for (let s = 0; s <= clock; s += 1 / 120) { oursScale(s % CYCLE, 1 / 120); }  // demo time
     setPlaying(false);
     render();
   } else if (reduce) {
