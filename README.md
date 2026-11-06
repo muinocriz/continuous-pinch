@@ -16,6 +16,7 @@
   <img src="https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white" alt="Windows 11">
   <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B&logoColor=white" alt="C++17">
   <img src="https://img.shields.io/badge/version-v1.3.0-brightgreen" alt="v1.3.0">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
 </p>
 
 <p align="center">
@@ -334,6 +335,7 @@ continuous-pinch/
 ├─ build.bat
 ├─ README.md
 ├─ CHANGELOG.md
+├─ LICENSE                  # MIT 许可证
 ├─ .clang-format
 ├─ .gitattributes
 └─ .gitignore
@@ -581,4 +583,8 @@ Build: open a "x64 Native Tools Command Prompt for VS 2022" and run `build.bat`.
 
 ## License
 
-暂未选择开源许可证。
+本项目以 [MIT 许可证](LICENSE) 开源。
+
+你可以自由地使用、复制、修改、合并、发布、分发、再授权和销售本软件，包括用于商业用途和闭源项目，只需在副本中保留原有的版权声明和许可声明。本软件按“原样”提供，不附带任何担保。
+
+This project is licensed under the [MIT License](LICENSE).
