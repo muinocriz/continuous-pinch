@@ -336,6 +336,7 @@ continuous-pinch/
 ├─ README.md
 ├─ CHANGELOG.md
 ├─ LICENSE                  # MIT 许可证
+├─ CLAUDE.md                # 给 AI 助手的项目交接说明
 ├─ .clang-format
 ├─ .gitattributes
 └─ .gitignore
