@@ -95,6 +95,24 @@ Continuous Pinch 是一个面向 Windows 11 的鼠标滚轮捏合缩放工具。
 
 > 如果浏览器以管理员身份运行，Windows 会阻止普通权限程序向其注入输入，此时本程序也需要以管理员身份运行。
 
+### 首次运行时出现“Windows 已保护你的电脑”
+
+本程序没有购买代码签名证书，所以第一次运行从网上下载的 EXE 时，Windows 的 SmartScreen 可能会弹出蓝色提示框：
+
+> Windows 已保护你的电脑
+> Microsoft Defender SmartScreen 阻止了无法识别的应用启动。
+
+这是 Windows 对所有未签名新程序的通用提示，并不表示程序有问题。如果确认 EXE 是从本项目的 [Releases](https://github.com/muinocriz/continuous-pinch/releases) 页面下载的，可以这样运行：
+
+1. 点击提示框中的 **“更多信息”**。
+2. 点击出现的 **“仍要运行”** 按钮。
+
+之后再打开这个 EXE 就不会再提示。
+
+也可以提前解除限制：右键 `ContinuousPinch.exe` → **属性** → 在“常规”页底部勾选 **“解除锁定”** → 确定。
+
+**杀毒软件误报**：本程序需要使用全局鼠标钩子拦截滚轮、模拟一次按键（防止松开 Alt 时激活浏览器菜单），并注入触控板输入。这些都是键鼠增强工具的常见做法，但个别杀毒软件可能因此误报。如有疑虑，可以查看源代码后自行编译（见下文“编译”），或将 EXE 加入杀毒软件的信任列表。
+
 ---
 
 ## 默认操作
@@ -554,6 +572,8 @@ Ctrl + Alt + Middle Click
 Ctrl + Alt + Shift + F12
     Exit
 ```
+
+First run: the EXE is not code-signed, so Windows SmartScreen may show "Windows protected your PC". If you downloaded it from this project's Releases page, click **More info**, then **Run anyway** (or right-click the EXE → Properties → tick **Unblock**). Because the app uses a global mouse hook and injects input, some antivirus tools may flag it; you can review the source and build it yourself.
 
 Build: open a "x64 Native Tools Command Prompt for VS 2022" and run `build.bat`. See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
